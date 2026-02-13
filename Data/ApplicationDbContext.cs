@@ -30,6 +30,13 @@ namespace CMetalsFulfillment.Data
         public DbSet<PickingListLine> PickingListLines { get; set; }
         public DbSet<PickingListEvent> PickingListEvents { get; set; }
 
+        public DbSet<WorkOrder> WorkOrders { get; set; }
+        public DbSet<WorkOrderInputCoil> WorkOrderInputCoils { get; set; }
+        public DbSet<WorkOrderOutputLine> WorkOrderOutputLines { get; set; }
+        public DbSet<WorkOrderProductionRecord> WorkOrderProductionRecords { get; set; }
+        public DbSet<WorkOrderEvent> WorkOrderEvents { get; set; }
+        public DbSet<LogisticsTag> LogisticsTags { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -87,6 +94,36 @@ namespace CMetalsFulfillment.Data
                 .WithMany()
                 .HasForeignKey(r => r.ShippingGroupId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
+
+            // Work Order Constraints
+            builder.Entity<WorkOrder>()
+                .HasOne(w => w.Branch)
+                .WithMany()
+                .HasForeignKey(w => w.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WorkOrderOutputLine>()
+                .HasOne(l => l.PickingListLine)
+                .WithMany()
+                .HasForeignKey(l => l.PickingListLineId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<LogisticsTag>()
+                .HasOne(t => t.Branch)
+                .WithMany()
+                .HasForeignKey(t => t.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WorkOrderOutputLine>()
+                .Property(e => e.PlannedQty).HasColumnType("decimal(18, 4)");
+            builder.Entity<WorkOrderOutputLine>()
+                .Property(e => e.ProducedQty).HasColumnType("decimal(18, 4)");
+            builder.Entity<WorkOrderInputCoil>()
+                .Property(e => e.WeightLbs).HasColumnType("decimal(18, 4)");
+            builder.Entity<WorkOrderProductionRecord>()
+                .Property(e => e.ProducedWeightLbs).HasColumnType("decimal(18, 4)");
+            builder.Entity<LogisticsTag>()
+                .Property(e => e.WeightLbs).HasColumnType("decimal(18, 4)");
         }
     }
 }
