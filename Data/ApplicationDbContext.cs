@@ -11,6 +11,12 @@ namespace CMetalsFulfillment.Data
         public DbSet<UserBranchMembership> UserBranchMemberships { get; set; }
         public DbSet<UserBranchClaim> UserBranchClaims { get; set; }
 
+        public DbSet<Machine> Machines { get; set; }
+        public DbSet<MachineOperatorAssignment> MachineOperatorAssignments { get; set; }
+        public DbSet<PickPackStation> PickPackStations { get; set; }
+        public DbSet<PickPackStationAssignment> PickPackStationAssignments { get; set; }
+        public DbSet<ShiftTemplate> ShiftTemplates { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

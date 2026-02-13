@@ -1,0 +1,82 @@
+@page "/admin/pickpackstations"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Pick/Pack Stations Config</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddStation" Class="mb-4">Add Station</MudButton>
+
+<MudTable Items="@_stations" Hover="true" Loading="@_loading">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Active</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Active">
+            <MudCheckBox T="bool" Value="@context.IsActive" ReadOnly="true" Color="Color.Primary"></MudCheckBox>
+        </MudTd>
+        <MudTd DataLabel="Actions">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => EditStation(context))">Edit</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<PickPackStation> _stations = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStations();
+    }
+
+    private async Task LoadStations()
+    {
+        _loading = true;
+        try
+        {
+            _stations = await Http.GetFromJsonAsync<List<PickPackStation>>("api/admin/pickpackstations") ?? new List<PickPackStation>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading stations: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async Task AddStation()
+    {
+        var parameters = new DialogParameters { ["Station"] = new PickPackStation() };
+        var dialog = DialogService.Show<StationDialog>("Add Station", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadStations();
+        }
+    }
+
+    private async Task EditStation(PickPackStation station)
+    {
+        var parameters = new DialogParameters { ["Station"] = new PickPackStation
+        {
+            PickPackStationId = station.PickPackStationId,
+            BranchId = station.BranchId,
+            Name = station.Name,
+            IsActive = station.IsActive
+        }};
+
+        var dialog = DialogService.Show<StationDialog>("Edit Station", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadStations();
+        }
+    }
+}

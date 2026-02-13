@@ -1,0 +1,85 @@
+@page "/admin/machines"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Machines Config</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddMachine" Class="mb-4">Add Machine</MudButton>
+
+<MudTable Items="@_machines" Hover="true" Loading="@_loading">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Active</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Type">@context.MachineType</MudTd>
+        <MudTd DataLabel="Active">
+            <MudCheckBox T="bool" Value="@context.IsActive" ReadOnly="true" Color="Color.Primary"></MudCheckBox>
+        </MudTd>
+        <MudTd DataLabel="Actions">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => EditMachine(context))">Edit</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Machine> _machines = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMachines();
+    }
+
+    private async Task LoadMachines()
+    {
+        _loading = true;
+        try
+        {
+            _machines = await Http.GetFromJsonAsync<List<Machine>>("api/admin/machines") ?? new List<Machine>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading machines: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async Task AddMachine()
+    {
+        var parameters = new DialogParameters { ["Machine"] = new Machine() };
+        var dialog = DialogService.Show<MachineDialog>("Add Machine", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadMachines();
+        }
+    }
+
+    private async Task EditMachine(Machine machine)
+    {
+        var parameters = new DialogParameters { ["Machine"] = new Machine
+        {
+            MachineId = machine.MachineId,
+            BranchId = machine.BranchId,
+            Name = machine.Name,
+            MachineType = machine.MachineType,
+            IsActive = machine.IsActive
+        }};
+
+        var dialog = DialogService.Show<MachineDialog>("Edit Machine", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadMachines();
+        }
+    }
+}

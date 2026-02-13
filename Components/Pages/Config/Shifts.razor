@@ -1,0 +1,89 @@
+@page "/admin/shifts"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Shift Templates Config</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddShift" Class="mb-4">Add Shift Template</MudButton>
+
+<MudTable Items="@_shifts" Hover="true" Loading="@_loading">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Start Time</MudTh>
+        <MudTh>End Time</MudTh>
+        <MudTh>Active</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Start">@context.StartTimeLocal.ToString(@"hh\:mm")</MudTd>
+        <MudTd DataLabel="End">@context.EndTimeLocal.ToString(@"hh\:mm")</MudTd>
+        <MudTd DataLabel="Active">
+            <MudCheckBox T="bool" Value="@context.IsActive" ReadOnly="true" Color="Color.Primary"></MudCheckBox>
+        </MudTd>
+        <MudTd DataLabel="Actions">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => EditShift(context))">Edit</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<ShiftTemplate> _shifts = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShifts();
+    }
+
+    private async Task LoadShifts()
+    {
+        _loading = true;
+        try
+        {
+            _shifts = await Http.GetFromJsonAsync<List<ShiftTemplate>>("api/admin/shifts") ?? new List<ShiftTemplate>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading shifts: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async Task AddShift()
+    {
+        var parameters = new DialogParameters { ["Shift"] = new ShiftTemplate { StartTimeLocal = TimeSpan.FromHours(8), EndTimeLocal = TimeSpan.FromHours(16) } };
+        var dialog = DialogService.Show<ShiftDialog>("Add Shift Template", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadShifts();
+        }
+    }
+
+    private async Task EditShift(ShiftTemplate shift)
+    {
+        var parameters = new DialogParameters { ["Shift"] = new ShiftTemplate
+        {
+            ShiftTemplateId = shift.ShiftTemplateId,
+            BranchId = shift.BranchId,
+            Name = shift.Name,
+            StartTimeLocal = shift.StartTimeLocal,
+            EndTimeLocal = shift.EndTimeLocal,
+            BreakRulesJson = shift.BreakRulesJson,
+            IsActive = shift.IsActive
+        }};
+
+        var dialog = DialogService.Show<ShiftDialog>("Edit Shift Template", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadShifts();
+        }
+    }
+}

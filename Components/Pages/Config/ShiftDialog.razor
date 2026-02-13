@@ -1,0 +1,66 @@
+@using MudBlazor
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField Label="Name" @bind-Value="Shift.Name" Required="true" RequiredError="Name is required" />
+        <MudTimePicker Label="Start Time" @bind-Time="StartTime" />
+        <MudTimePicker Label="End Time" @bind-Time="EndTime" />
+        <MudTextField Label="Break Rules (JSON)" @bind-Value="Shift.BreakRulesJson" Lines="3" />
+        <MudCheckBox T="bool" Label="Active" @bind-Value="Shift.IsActive" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public ShiftTemplate Shift { get; set; } = new();
+
+    private TimeSpan? StartTime
+    {
+        get => Shift.StartTimeLocal;
+        set => Shift.StartTimeLocal = value ?? TimeSpan.Zero;
+    }
+
+    private TimeSpan? EndTime
+    {
+        get => Shift.EndTimeLocal;
+        set => Shift.EndTimeLocal = value ?? TimeSpan.Zero;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(Shift.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/admin/shifts", Shift);
+            if (response.IsSuccessStatusCode)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+                Snackbar.Add("Shift saved", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Error saving shift", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

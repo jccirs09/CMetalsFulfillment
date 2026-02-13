@@ -1,4 +1,7 @@
+using CMetalsFulfillment.Data;
 using CMetalsFulfillment.Features.Auth;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CMetalsFulfillment.Features.Admin
 {
@@ -16,16 +19,33 @@ namespace CMetalsFulfillment.Features.Admin
     public class SetupGateService
     {
         private readonly IBranchContext _branchContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public SetupGateService(IBranchContext branchContext)
+        public SetupGateService(IBranchContext branchContext, IServiceScopeFactory scopeFactory)
         {
             _branchContext = branchContext;
+            _scopeFactory = scopeFactory;
         }
 
-        public Task<BranchSetupStatus> GetStatusAsync()
+        public async Task<BranchSetupStatus> GetStatusAsync()
         {
-             // Placeholder: Always return incomplete until features are implemented.
-             return Task.FromResult(new BranchSetupStatus());
+             var status = new BranchSetupStatus();
+             if (!_branchContext.BranchId.HasValue) return status;
+
+             var branchId = _branchContext.BranchId.Value;
+
+             using var scope = _scopeFactory.CreateScope();
+             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+             status.HasMachines = await db.Machines.AnyAsync(m => m.BranchId == branchId && m.IsActive);
+             status.HasPickPackStations = await db.PickPackStations.AnyAsync(s => s.BranchId == branchId && s.IsActive);
+             status.HasShiftTemplates = await db.ShiftTemplates.AnyAsync(s => s.BranchId == branchId && s.IsActive);
+
+             // Still pending implementation
+             status.HasShippingRules = false;
+             status.HasItemMaster = false;
+
+             return status;
         }
     }
 }
