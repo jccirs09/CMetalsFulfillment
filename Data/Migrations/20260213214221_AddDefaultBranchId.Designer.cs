@@ -3,6 +3,7 @@ using System;
 using CMetalsFulfillment.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMetalsFulfillment.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260213214221_AddDefaultBranchId")]
+    partial class AddDefaultBranchId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
@@ -28,6 +31,9 @@ namespace CMetalsFulfillment.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultBranchId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -97,7 +103,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasKey("BranchId");
 
-                    b.ToTable("Branches", (string)null);
+                    b.ToTable("Branches");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.BranchSettings", b =>
@@ -115,7 +121,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("DefaultPickPackStationId");
 
-                    b.ToTable("BranchSettings", (string)null);
+                    b.ToTable("BranchSettings");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.Item", b =>
@@ -157,7 +163,7 @@ namespace CMetalsFulfillment.Migrations
                     b.HasIndex("BranchId", "ItemCode")
                         .IsUnique();
 
-                    b.ToTable("Items", (string)null);
+                    b.ToTable("Items");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.Machine", b =>
@@ -184,7 +190,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("Machines", (string)null);
+                    b.ToTable("Machines");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.PickPackStation", b =>
@@ -207,7 +213,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("PickPackStations", (string)null);
+                    b.ToTable("PickPackStations");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShiftTemplate", b =>
@@ -239,7 +245,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("ShiftTemplates", (string)null);
+                    b.ToTable("ShiftTemplates");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingFsaRule", b =>
@@ -276,7 +282,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("ShippingRegionId");
 
-                    b.ToTable("ShippingFsaRules", (string)null);
+                    b.ToTable("ShippingFsaRules");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingGroup", b =>
@@ -304,7 +310,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("ShippingRegionId");
 
-                    b.ToTable("ShippingGroups", (string)null);
+                    b.ToTable("ShippingGroups");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingRegion", b =>
@@ -327,7 +333,7 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("ShippingRegions", (string)null);
+                    b.ToTable("ShippingRegions");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.UserBranchClaim", b =>
@@ -358,7 +364,9 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("UserBranchClaims", (string)null);
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserBranchClaims");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.UserBranchMembership", b =>
@@ -384,7 +392,9 @@ namespace CMetalsFulfillment.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("UserBranchMemberships", (string)null);
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserBranchMemberships");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -658,6 +668,12 @@ namespace CMetalsFulfillment.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", null)
+                        .WithMany("BranchClaims")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Branch");
                 });
 
@@ -666,6 +682,12 @@ namespace CMetalsFulfillment.Migrations
                     b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
                         .WithMany()
                         .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", null)
+                        .WithMany("BranchMemberships")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -736,7 +758,7 @@ namespace CMetalsFulfillment.Migrations
 
                             b1.HasKey("IdentityUserPasskeyCredentialId");
 
-                            b1.ToTable("AspNetUserPasskeys", (string)null);
+                            b1.ToTable("AspNetUserPasskeys");
 
                             b1
                                 .ToJson("Data")
@@ -772,6 +794,13 @@ namespace CMetalsFulfillment.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Data.ApplicationUser", b =>
+                {
+                    b.Navigation("BranchClaims");
+
+                    b.Navigation("BranchMemberships");
                 });
 #pragma warning restore 612, 618
         }
