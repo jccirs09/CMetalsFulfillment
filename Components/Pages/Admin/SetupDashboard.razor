@@ -1,0 +1,59 @@
+@page "/admin/setup"
+@using CMetalsFulfillment.Features.Admin
+@inject SetupStatusService SetupService
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h3" GutterBottom="true">Branch Setup Dashboard</MudText>
+
+    @if (_status == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h5">Configuration Checklist</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudChip T="string" Color="@(_status.IsComplete ? Color.Success : Color.Warning)" Variant="Variant.Filled">
+                        @(_status.IsComplete ? "Operational" : "Setup Required")
+                    </MudChip>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="string" Dense="true">
+                    <MudListItem Icon="@Icons.Material.Filled.Build" Text="Machines (Any Active Machine)">
+                        <MudChip T="string" Color="@(_status.HasMachines ? Color.Success : Color.Error)" Size="Size.Small">@(_status.HasMachines ? "Complete" : "Missing")</MudChip>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.LocalPostOffice" Text="Pick/Pack Stations (Any Active Station)">
+                        <MudChip T="string" Color="@(_status.HasPickPackStations ? Color.Success : Color.Error)" Size="Size.Small">@(_status.HasPickPackStations ? "Complete" : "Missing")</MudChip>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Schedule" Text="Shift Templates (Any Active Shift)">
+                        <MudChip T="string" Color="@(_status.HasShiftTemplates ? Color.Success : Color.Error)" Size="Size.Small">@(_status.HasShiftTemplates ? "Complete" : "Missing")</MudChip>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.LocalShipping" Text="Shipping Rules (Region + FSA Rule)">
+                        <MudChip T="string" Color="@(_status.HasShippingRules ? Color.Success : Color.Error)" Size="Size.Small">@(_status.HasShippingRules ? "Complete" : "Missing")</MudChip>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Inventory" Text="Item Master (Items Imported)">
+                        <MudChip T="string" Color="@(_status.HasItemMaster ? Color.Success : Color.Error)" Size="Size.Small">@(_status.HasItemMaster ? "Complete" : "Missing")</MudChip>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/"))">Back to Dashboard</MudButton>
+            </MudCardActions>
+        </MudCard>
+    }
+</MudContainer>
+
+@code {
+    private BranchSetupStatusDto? _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await SetupService.GetStatusAsync();
+    }
+}

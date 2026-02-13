@@ -1,0 +1,108 @@
+@page "/admin/users"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Domain
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext Db
+@inject IDialogService DialogService
+@attribute [Authorize(Roles = "SystemAdmin")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">User Management</MudText>
+
+    <MudTable Items="@_users" Dense="true" Hover="true" Striped="true" Filter="new Func<UserDto,bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Users</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Email</MudTh>
+            <MudTh>Branch Memberships</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Memberships">
+                @foreach (var m in context.Memberships)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="@(m.IsActive ? Color.Success : Color.Default)">@m.BranchName @(m.IsDefault ? "(Default)" : "")</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenManageDialog(context))">Manage</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<UserDto> _users = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        // Projection to avoid tracking issues and circular references
+        var users = await UserManager.Users
+            .Include(u => u.BranchMemberships).ThenInclude(m => m.Branch)
+            .ToListAsync();
+
+        _users = users.Select(u => new UserDto
+        {
+            Id = u.Id,
+            Email = u.Email ?? "",
+            Memberships = u.BranchMemberships.Select(m => new MembershipDto
+            {
+                BranchName = m.Branch?.Name ?? "Unknown",
+                IsActive = m.IsActive,
+                IsDefault = m.DefaultForUser
+            }).ToList()
+        }).ToList();
+    }
+
+    private bool FilterFunc(UserDto user) => FilterFunc(user, _searchString);
+
+    private bool FilterFunc(UserDto user, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (user.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private async Task OpenManageDialog(UserDto user)
+    {
+        var parameters = new DialogParameters { ["UserId"] = user.Id, ["UserEmail"] = user.Email };
+        var dialog = await DialogService.ShowAsync<ManageUserDialog>("Manage User", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    public class UserDto
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public List<MembershipDto> Memberships { get; set; } = new();
+    }
+
+    public class MembershipDto
+    {
+        public string BranchName { get; set; } = "";
+        public bool IsActive { get; set; }
+        public bool IsDefault { get; set; }
+    }
+}
