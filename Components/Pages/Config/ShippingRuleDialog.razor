@@ -1,0 +1,69 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Rule.FsaPrefix" Label="FSA Prefix (3 chars)" Required="true" MaxLength="3" />
+        <MudNumericField @bind-Value="Rule.Priority" Label="Priority" Required="true" Min="1" />
+
+        <MudSelect T="int?" Label="Region" @bind-Value="Rule.ShippingRegionId" Clearable="true">
+            @foreach (var region in Regions)
+            {
+                <MudSelectItem T="int?" Value="@region.Id">@region.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int?" Label="Group" @bind-Value="Rule.ShippingGroupId" Clearable="true">
+            @foreach (var group in Groups)
+            {
+                <MudSelectItem T="int?" Value="@group.Id">@group.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudCheckBox T="bool" @bind-Value="Rule.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ShippingFsaRule Rule { get; set; } = new();
+    [Parameter] public List<ShippingRegion> Regions { get; set; } = new();
+    [Parameter] public List<ShippingGroup> Groups { get; set; } = new();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Rule.FsaPrefix) || Rule.FsaPrefix.Length != 3)
+        {
+            Snackbar.Add("FSA Prefix must be exactly 3 characters", Severity.Warning);
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (Rule.Id == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/shipping/rules", Rule);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/shipping/rules/{Rule.Id}", Rule);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Rule saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving rule", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

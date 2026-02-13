@@ -1,0 +1,51 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Station.Name" Label="Name" Required="true" />
+        <MudCheckBox T="bool" @bind-Value="Station.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PickPackStation Station { get; set; } = new();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Station.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (Station.PickPackStationId == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/stations", Station);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/stations/{Station.PickPackStationId}", Station);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Station saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving station", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

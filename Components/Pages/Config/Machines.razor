@@ -1,0 +1,104 @@
+@page "/config/machines"
+@using CMetalsFulfillment.Domain
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = "AdminPolicy")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">Machine Configuration</MudText>
+
+    <MudTable Items="@_machines" Dense="true" Hover="true" Striped="true" Filter="new Func<Machine,bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Machines</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddMachine" Class="ml-4">Add Machine</MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Type">@context.MachineType</MudTd>
+            <MudTd DataLabel="Active">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Yes" : "No")</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditMachine(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Machine> _machines = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMachinesAsync();
+    }
+
+    private async Task LoadMachinesAsync()
+    {
+        try
+        {
+            _machines = await Http.GetFromJsonAsync<List<Machine>>("api/config/machines") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading machines: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool FilterFunc(Machine machine) => FilterFunc(machine, _searchString);
+
+    private bool FilterFunc(Machine machine, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (machine.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (machine.MachineType.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private async Task AddMachine()
+    {
+        var parameters = new DialogParameters { ["Machine"] = new Machine { IsActive = true, MachineType = "CTL" } };
+        var dialog = await DialogService.ShowAsync<MachineDialog>("Add Machine", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadMachinesAsync();
+        }
+    }
+
+    private async Task EditMachine(Machine machine)
+    {
+        var parameters = new DialogParameters { ["Machine"] = new Machine
+        {
+            MachineId = machine.MachineId,
+            BranchId = machine.BranchId,
+            Name = machine.Name,
+            MachineType = machine.MachineType,
+            IsActive = machine.IsActive
+        } };
+
+        var dialog = await DialogService.ShowAsync<MachineDialog>("Edit Machine", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadMachinesAsync();
+        }
+    }
+}

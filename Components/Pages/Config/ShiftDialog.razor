@@ -1,0 +1,72 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Shift.Name" Label="Name" Required="true" />
+        <MudTimePicker @bind-Time="_startTime" Label="Start Time" Required="true" />
+        <MudTimePicker @bind-Time="_endTime" Label="End Time" Required="true" />
+        <MudTextField @bind-Value="Shift.BreakRulesJson" Label="Break Rules (JSON)" Lines="3" />
+        <MudCheckBox T="bool" @bind-Value="Shift.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ShiftTemplate Shift { get; set; } = new();
+
+    private TimeSpan? _startTime;
+    private TimeSpan? _endTime;
+
+    protected override void OnInitialized()
+    {
+        _startTime = Shift.StartTimeLocal;
+        _endTime = Shift.EndTimeLocal;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Shift.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+
+        if (_startTime == null || _endTime == null)
+        {
+            Snackbar.Add("Start and End times are required", Severity.Warning);
+            return;
+        }
+
+        Shift.StartTimeLocal = _startTime.Value;
+        Shift.EndTimeLocal = _endTime.Value;
+
+        HttpResponseMessage response;
+        if (Shift.ShiftTemplateId == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/shifts", Shift);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/shifts/{Shift.ShiftTemplateId}", Shift);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Shift saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving shift", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

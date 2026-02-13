@@ -1,0 +1,55 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Machine.Name" Label="Name" Required="true" />
+        <MudSelect @bind-Value="Machine.MachineType" Label="Type">
+            <MudSelectItem Value="@("CTL")">CTL</MudSelectItem>
+            <MudSelectItem Value="@("Slitter")">Slitter</MudSelectItem>
+        </MudSelect>
+        <MudCheckBox T="bool" @bind-Value="Machine.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Machine Machine { get; set; } = new();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Machine.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (Machine.MachineId == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/machines", Machine);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/machines/{Machine.MachineId}", Machine);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Machine saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving machine", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

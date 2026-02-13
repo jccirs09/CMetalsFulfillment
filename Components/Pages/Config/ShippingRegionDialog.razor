@@ -1,0 +1,51 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Region.Name" Label="Name" Required="true" />
+        <MudCheckBox T="bool" @bind-Value="Region.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ShippingRegion Region { get; set; } = new();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Region.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (Region.Id == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/shipping/regions", Region);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/shipping/regions/{Region.Id}", Region);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Region saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving region", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

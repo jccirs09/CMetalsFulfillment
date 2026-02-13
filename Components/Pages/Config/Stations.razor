@@ -1,0 +1,100 @@
+@page "/config/stations"
+@using CMetalsFulfillment.Domain
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = "AdminPolicy")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">Pick/Pack Stations</MudText>
+
+    <MudTable Items="@_stations" Dense="true" Hover="true" Striped="true" Filter="new Func<PickPackStation,bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Stations</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddStation" Class="ml-4">Add Station</MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Active">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Yes" : "No")</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditStation(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<PickPackStation> _stations = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStationsAsync();
+    }
+
+    private async Task LoadStationsAsync()
+    {
+        try
+        {
+            _stations = await Http.GetFromJsonAsync<List<PickPackStation>>("api/config/stations") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading stations: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool FilterFunc(PickPackStation station) => FilterFunc(station, _searchString);
+
+    private bool FilterFunc(PickPackStation station, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (station.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private async Task AddStation()
+    {
+        var parameters = new DialogParameters { ["Station"] = new PickPackStation { IsActive = true } };
+        var dialog = await DialogService.ShowAsync<StationDialog>("Add Station", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadStationsAsync();
+        }
+    }
+
+    private async Task EditStation(PickPackStation station)
+    {
+        var parameters = new DialogParameters { ["Station"] = new PickPackStation
+        {
+            PickPackStationId = station.PickPackStationId,
+            BranchId = station.BranchId,
+            Name = station.Name,
+            IsActive = station.IsActive
+        } };
+
+        var dialog = await DialogService.ShowAsync<StationDialog>("Edit Station", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadStationsAsync();
+        }
+    }
+}

@@ -1,0 +1,63 @@
+@using CMetalsFulfillment.Domain
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Group.Name" Label="Name" Required="true" />
+        <MudSelect T="int" Label="Region" @bind-Value="Group.ShippingRegionId" Required="true">
+            @foreach (var region in Regions)
+            {
+                <MudSelectItem Value="@region.Id">@region.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudCheckBox T="bool" @bind-Value="Group.IsActive" Label="Active" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ShippingGroup Group { get; set; } = new();
+    [Parameter] public List<ShippingRegion> Regions { get; set; } = new();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Group.Name))
+        {
+            Snackbar.Add("Name is required", Severity.Warning);
+            return;
+        }
+        if (Group.ShippingRegionId == 0)
+        {
+            Snackbar.Add("Region is required", Severity.Warning);
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (Group.Id == 0)
+        {
+            response = await Http.PostAsJsonAsync("api/config/shipping/groups", Group);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/config/shipping/groups/{Group.Id}", Group);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Group saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error saving group", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

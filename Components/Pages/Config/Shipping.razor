@@ -1,0 +1,195 @@
+@page "/config/shipping"
+@using CMetalsFulfillment.Domain
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = "AdminPolicy")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">Shipping Configuration</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Regions">
+            <MudTable Items="@_regions" Dense="true" Hover="true" Striped="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Shipping Regions</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddRegion">Add Region</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditRegion(context))">Edit</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Groups">
+            <MudTable Items="@_groups" Dense="true" Hover="true" Striped="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Shipping Groups</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddGroup">Add Group</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Region</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Region">@context.ShippingRegion?.Name</MudTd>
+                    <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditGroup(context))">Edit</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="FSA Rules">
+            <MudTable Items="@_rules" Dense="true" Hover="true" Striped="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">FSA Rules</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddRule">Add Rule</MudButton>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>FSA Prefix</MudTh>
+                    <MudTh>Priority</MudTh>
+                    <MudTh>Region</MudTh>
+                    <MudTh>Group</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="FSA">@context.FsaPrefix</MudTd>
+                    <MudTd DataLabel="Priority">@context.Priority</MudTd>
+                    <MudTd DataLabel="Region">@context.ShippingRegion?.Name</MudTd>
+                    <MudTd DataLabel="Group">@context.ShippingGroup?.Name</MudTd>
+                    <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditRule(context))">Edit</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private List<ShippingRegion> _regions = new();
+    private List<ShippingGroup> _groups = new();
+    private List<ShippingFsaRule> _rules = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
+        await LoadRegionsAsync();
+        await LoadGroupsAsync();
+        await LoadRulesAsync();
+    }
+
+    private async Task LoadRegionsAsync()
+    {
+        _regions = await Http.GetFromJsonAsync<List<ShippingRegion>>("api/config/shipping/regions") ?? new();
+    }
+
+    private async Task LoadGroupsAsync()
+    {
+        _groups = await Http.GetFromJsonAsync<List<ShippingGroup>>("api/config/shipping/groups") ?? new();
+    }
+
+    private async Task LoadRulesAsync()
+    {
+        _rules = await Http.GetFromJsonAsync<List<ShippingFsaRule>>("api/config/shipping/rules") ?? new();
+    }
+
+    // Region Dialog
+    private async Task AddRegion()
+    {
+        var parameters = new DialogParameters { ["Region"] = new ShippingRegion { IsActive = true } };
+        var dialog = await DialogService.ShowAsync<ShippingRegionDialog>("Add Region", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadRegionsAsync();
+    }
+
+    private async Task EditRegion(ShippingRegion region)
+    {
+        var parameters = new DialogParameters { ["Region"] = new ShippingRegion { Id = region.Id, Name = region.Name, IsActive = region.IsActive, BranchId = region.BranchId } };
+        var dialog = await DialogService.ShowAsync<ShippingRegionDialog>("Edit Region", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadRegionsAsync();
+    }
+
+    // Group Dialog
+    private async Task AddGroup()
+    {
+        var parameters = new DialogParameters { ["Group"] = new ShippingGroup { IsActive = true }, ["Regions"] = _regions };
+        var dialog = await DialogService.ShowAsync<ShippingGroupDialog>("Add Group", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadGroupsAsync();
+    }
+
+    private async Task EditGroup(ShippingGroup group)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Group"] = new ShippingGroup { Id = group.Id, Name = group.Name, ShippingRegionId = group.ShippingRegionId, IsActive = group.IsActive, BranchId = group.BranchId },
+            ["Regions"] = _regions
+        };
+        var dialog = await DialogService.ShowAsync<ShippingGroupDialog>("Edit Group", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadGroupsAsync();
+    }
+
+    // Rule Dialog
+    private async Task AddRule()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Rule"] = new ShippingFsaRule { IsActive = true, Priority = 1 },
+            ["Regions"] = _regions,
+            ["Groups"] = _groups
+        };
+        var dialog = await DialogService.ShowAsync<ShippingRuleDialog>("Add Rule", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadRulesAsync();
+    }
+
+    private async Task EditRule(ShippingFsaRule rule)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Rule"] = new ShippingFsaRule
+            {
+                Id = rule.Id,
+                FsaPrefix = rule.FsaPrefix,
+                Priority = rule.Priority,
+                ShippingRegionId = rule.ShippingRegionId,
+                ShippingGroupId = rule.ShippingGroupId,
+                IsActive = rule.IsActive,
+                BranchId = rule.BranchId
+            },
+            ["Regions"] = _regions,
+            ["Groups"] = _groups
+        };
+        var dialog = await DialogService.ShowAsync<ShippingRuleDialog>("Edit Rule", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadRulesAsync();
+    }
+}

@@ -3,6 +3,7 @@ using CMetalsFulfillment.Components.Account;
 using CMetalsFulfillment.Data;
 using CMetalsFulfillment.Features.Admin;
 using CMetalsFulfillment.Features.Auth;
+using CMetalsFulfillment.Features.Config;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -88,6 +89,7 @@ app.MapAdditionalIdentityEndpoints();
 
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
+app.MapConfigEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
