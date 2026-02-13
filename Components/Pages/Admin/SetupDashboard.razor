@@ -1,0 +1,79 @@
+@page "/admin/setup"
+@using CMetalsFulfillment.Features.Admin
+@inject SetupGateService SetupService
+
+<MudText Typo="Typo.h4" GutterBottom="true">Branch Setup Dashboard</MudText>
+
+@if (_status == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Machines</MudText>
+                    <MudText Color="@(_status.HasMachines ? Color.Success : Color.Error)">@(_status.HasMachines ? "Configured" : "Missing")</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="admin/machines">Manage Machines</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Pick/Pack Stations</MudText>
+                    <MudText Color="@(_status.HasPickPackStations ? Color.Success : Color.Error)">@(_status.HasPickPackStations ? "Configured" : "Missing")</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="admin/stations">Manage Stations</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Shift Templates</MudText>
+                    <MudText Color="@(_status.HasShiftTemplates ? Color.Success : Color.Error)">@(_status.HasShiftTemplates ? "Configured" : "Missing")</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="admin/shifts">Manage Shifts</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Shipping Rules</MudText>
+                    <MudText Color="@(_status.HasShippingRules ? Color.Success : Color.Error)">@(_status.HasShippingRules ? "Configured" : "Missing")</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="admin/shipping">Manage Rules</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Item Master</MudText>
+                    <MudText Color="@(_status.HasItemMaster ? Color.Success : Color.Error)">@(_status.HasItemMaster ? "Imported" : "Missing")</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="admin/items">Manage Items</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private BranchSetupStatus? _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await SetupService.GetStatusAsync();
+    }
+}
