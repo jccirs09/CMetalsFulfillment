@@ -1,0 +1,55 @@
+@using CMetalsFulfillment.Features.Admin
+@implements IDisposable
+@inject SetupStatusService SetupService
+@inject NavigationManager Navigation
+
+@if (_status == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!_status.IsComplete && !IsBypassed)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+        <MudText Typo="Typo.h6">Branch Setup Incomplete</MudText>
+        <MudText>This branch requires configuration before operations can begin.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo("/admin/setup"))" Class="mt-2">Go to Setup</MudButton>
+    </MudAlert>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private BranchSetupStatusDto? _status;
+
+    private bool IsBypassed
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).ToLowerInvariant();
+            return path.StartsWith("admin/setup") ||
+                   path.StartsWith("admin/users") ||
+                   path.StartsWith("account/") ||
+                   path.StartsWith("api/"); // API checks usually handled differently, but just in case
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        _status = await SetupService.GetStatusAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

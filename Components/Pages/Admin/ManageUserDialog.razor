@@ -1,0 +1,194 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Domain
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@inject ApplicationDbContext Db
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h5">Manage User: @UserEmail</MudText>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            <MudTabPanel Text="Branch Memberships">
+                <MudTable Items="@_memberships" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Branch</MudTh>
+                        <MudTh>Active</MudTh>
+                        <MudTh>Default</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Branch">@context.Branch?.Name</MudTd>
+                        <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                        <MudTd DataLabel="Default">@context.DefaultForUser</MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteMembership(context))" Size="Size.Small" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <MudText Typo="Typo.h6" Class="mt-4">Add Membership</MudText>
+                <MudSelect T="int" Label="Branch" @bind-Value="_newMembershipBranchId">
+                    @foreach (var b in _allBranches)
+                    {
+                        <MudSelectItem Value="@b.BranchId">@b.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudCheckBox T="bool" @bind-Value="_newMembershipIsDefault" Label="Default for User" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddMembership" Class="mt-2">Add Membership</MudButton>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Branch Claims (Roles)">
+                <MudTable Items="@_claims" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Branch</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Value</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Branch">@context.Branch?.Name</MudTd>
+                        <MudTd DataLabel="Type">@context.ClaimType</MudTd>
+                        <MudTd DataLabel="Value">@context.ClaimValue</MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteClaim(context))" Size="Size.Small" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <MudText Typo="Typo.h6" Class="mt-4">Add Claim</MudText>
+                <MudSelect T="int" Label="Branch" @bind-Value="_newClaimBranchId">
+                    @foreach (var b in _allBranches)
+                    {
+                        <MudSelectItem Value="@b.BranchId">@b.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Label="Role" @bind-Value="_newClaimValue">
+                    <MudSelectItem Value="@("BranchAdmin")">BranchAdmin</MudSelectItem>
+                    <MudSelectItem Value="@("Planner")">Planner</MudSelectItem>
+                    <MudSelectItem Value="@("Supervisor")">Supervisor</MudSelectItem>
+                    <MudSelectItem Value="@("Operator")">Operator</MudSelectItem>
+                    <MudSelectItem Value="@("LoaderChecker")">LoaderChecker</MudSelectItem>
+                    <MudSelectItem Value="@("Driver")">Driver</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddClaim" Class="mt-2">Add Role Claim</MudButton>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string UserId { get; set; } = "";
+    [Parameter] public string UserEmail { get; set; } = "";
+
+    private List<UserBranchMembership> _memberships = new();
+    private List<UserBranchClaim> _claims = new();
+    private List<Branch> _allBranches = new();
+
+    private int _newMembershipBranchId;
+    private bool _newMembershipIsDefault;
+
+    private int _newClaimBranchId;
+    private string _newClaimValue = "Operator";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _allBranches = await Db.Branches.Where(b => b.IsActive).ToListAsync();
+        _memberships = await Db.UserBranchMemberships
+            .Include(m => m.Branch)
+            .Where(m => m.UserId == UserId)
+            .ToListAsync();
+        _claims = await Db.UserBranchClaims
+            .Include(c => c.Branch)
+            .Where(c => c.UserId == UserId)
+            .ToListAsync();
+
+        if (_allBranches.Any())
+        {
+            _newMembershipBranchId = _allBranches.First().BranchId;
+            _newClaimBranchId = _allBranches.First().BranchId;
+        }
+    }
+
+    private async Task AddMembership()
+    {
+        if (_memberships.Any(m => m.BranchId == _newMembershipBranchId))
+        {
+            Snackbar.Add("Already a member of this branch", Severity.Warning);
+            return;
+        }
+
+        if (_newMembershipIsDefault)
+        {
+            // Unset others
+            foreach (var m in _memberships.Where(x => x.DefaultForUser))
+            {
+                m.DefaultForUser = false;
+            }
+        }
+
+        var membership = new UserBranchMembership
+        {
+            UserId = UserId,
+            BranchId = _newMembershipBranchId,
+            IsActive = true,
+            DefaultForUser = _newMembershipIsDefault
+        };
+
+        Db.UserBranchMemberships.Add(membership);
+        await Db.SaveChangesAsync();
+        await LoadDataAsync();
+        Snackbar.Add("Membership added", Severity.Success);
+    }
+
+    private async Task DeleteMembership(UserBranchMembership m)
+    {
+        Db.UserBranchMemberships.Remove(m);
+        await Db.SaveChangesAsync();
+        await LoadDataAsync();
+    }
+
+    private async Task AddClaim()
+    {
+        if (string.IsNullOrEmpty(_newClaimValue)) return;
+
+        var exists = _claims.Any(c => c.BranchId == _newClaimBranchId && c.ClaimType == "role" && c.ClaimValue == _newClaimValue);
+        if (exists)
+        {
+             Snackbar.Add("Role already assigned for this branch", Severity.Warning);
+             return;
+        }
+
+        var claim = new UserBranchClaim
+        {
+            UserId = UserId,
+            BranchId = _newClaimBranchId,
+            ClaimType = "role",
+            ClaimValue = _newClaimValue,
+            IsActive = true
+        };
+
+        Db.UserBranchClaims.Add(claim);
+        await Db.SaveChangesAsync();
+        await LoadDataAsync();
+        Snackbar.Add("Claim added", Severity.Success);
+    }
+
+    private async Task DeleteClaim(UserBranchClaim c)
+    {
+        Db.UserBranchClaims.Remove(c);
+        await Db.SaveChangesAsync();
+        await LoadDataAsync();
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}
