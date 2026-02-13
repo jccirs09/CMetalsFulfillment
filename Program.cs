@@ -5,6 +5,7 @@ using CMetalsFulfillment.Data;
 using CMetalsFulfillment.Features.Auth;
 using CMetalsFulfillment.Features.Admin;
 using CMetalsFulfillment.Features.Config;
+using CMetalsFulfillment.Features.Items;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -97,6 +98,7 @@ app.MapAdditionalIdentityEndpoints();
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapConfigEndpoints();
+app.MapItemEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {

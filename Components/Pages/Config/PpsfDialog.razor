@@ -1,0 +1,53 @@
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">Editing PPSF for: <b>@Item.ItemCode</b></MudText>
+        <MudNumericField Label="Pounds Per Square Foot" @bind-Value="PoundsPerSquareFoot" Format="N4" Step="0.001M" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public Item Item { get; set; } = new();
+
+    private decimal? PoundsPerSquareFoot { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        PoundsPerSquareFoot = Item.PoundsPerSquareFoot;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            var request = new { PoundsPerSquareFoot = PoundsPerSquareFoot };
+            var response = await Http.PutAsJsonAsync($"api/items/{Item.Id}/ppsf", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+                Snackbar.Add("PPSF updated", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Error updating PPSF", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

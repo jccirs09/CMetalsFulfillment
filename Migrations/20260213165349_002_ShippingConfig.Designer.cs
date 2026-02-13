@@ -4,6 +4,7 @@ using CMetalsFulfillment.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMetalsFulfillment.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260213165349_002_ShippingConfig")]
+    partial class _002_ShippingConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,53 +125,6 @@ namespace CMetalsFulfillment.Migrations
                     b.HasKey("BranchId");
 
                     b.ToTable("BranchSettings");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.Item", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CoilItemCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CoilRelationship")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ItemCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<decimal?>("PoundsPerSquareFoot")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UOM")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId", "ItemCode")
-                        .IsUnique();
-
-                    b.ToTable("Items");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.Machine", b =>
@@ -615,17 +571,6 @@ namespace CMetalsFulfillment.Migrations
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.BranchSettings", b =>
-                {
-                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Branch");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.Item", b =>
                 {
                     b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
                         .WithMany()

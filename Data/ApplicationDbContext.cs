@@ -17,6 +17,11 @@ namespace CMetalsFulfillment.Data
         public DbSet<PickPackStationAssignment> PickPackStationAssignments { get; set; }
         public DbSet<ShiftTemplate> ShiftTemplates { get; set; }
 
+        public DbSet<ShippingRegion> ShippingRegions { get; set; }
+        public DbSet<ShippingGroup> ShippingGroups { get; set; }
+        public DbSet<ShippingFsaRule> ShippingFsaRules { get; set; }
+        public DbSet<Item> Items { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

@@ -41,9 +41,13 @@ namespace CMetalsFulfillment.Features.Admin
              status.HasPickPackStations = await db.PickPackStations.AnyAsync(s => s.BranchId == branchId && s.IsActive);
              status.HasShiftTemplates = await db.ShiftTemplates.AnyAsync(s => s.BranchId == branchId && s.IsActive);
 
-             // Still pending implementation
-             status.HasShippingRules = false;
-             status.HasItemMaster = false;
+             // Check Shipping Rules: At least 1 active region AND 1 active FSA rule
+             var hasRegion = await db.ShippingRegions.AnyAsync(r => r.BranchId == branchId && r.IsActive);
+             var hasRule = await db.ShippingFsaRules.AnyAsync(r => r.BranchId == branchId && r.IsActive);
+             status.HasShippingRules = hasRegion && hasRule;
+
+             // Check Item Master: At least 1 active item
+             status.HasItemMaster = await db.Items.AnyAsync(i => i.BranchId == branchId && i.IsActive);
 
              return status;
         }
