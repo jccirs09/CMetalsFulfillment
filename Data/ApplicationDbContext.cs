@@ -33,6 +33,35 @@ namespace CMetalsFulfillment.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Configure decimal precision
+            builder.Entity<InventorySnapshotLine>()
+                .Property(e => e.SnapshotValue)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<InventorySnapshotLine>()
+                .Property(e => e.CountValue)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<InventorySnapshotLine>()
+                .Property(e => e.Amount)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<InventoryStock>()
+                .Property(e => e.QuantityOnHand)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<InventoryStock>()
+                .Property(e => e.WeightOnHand)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<Item>()
+                .Property(e => e.PoundsPerSquareFoot)
+                .HasColumnType("decimal(18, 4)");
+
+            builder.Entity<PickingListLine>()
+                .Property(e => e.QtyOrdered)
+                .HasColumnType("decimal(18, 4)");
         }
     }
 }
