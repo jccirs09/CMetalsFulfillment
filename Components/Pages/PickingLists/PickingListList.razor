@@ -1,0 +1,47 @@
+@page "/picking-lists"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Picking Lists</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Href="picking-lists/import" Class="mb-4">Import New</MudButton>
+
+<MudTable Items="@_lists" Hover="true" Loading="@_loading">
+    <HeaderContent>
+        <MudTh>Number</MudTh>
+        <MudTh>Ship To</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Created</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Number">@context.PickingListNumber</MudTd>
+        <MudTd DataLabel="Ship To">@context.ShipToName</MudTd>
+        <MudTd DataLabel="Status">@context.Status</MudTd>
+        <MudTd DataLabel="Created">@context.CreatedAtUtc.ToLocalTime().ToString("g")</MudTd>
+        <MudTd DataLabel="Actions">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="@($"picking-lists/{context.PickingListUid}")">View</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<PickingList> _lists = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _lists = await Http.GetFromJsonAsync<List<PickingList>>("api/pl") ?? new List<PickingList>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lists: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+}

@@ -4,6 +4,7 @@ using CMetalsFulfillment.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMetalsFulfillment.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260213170844_004_Inventory")]
+    partial class _004_Inventory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -441,153 +444,6 @@ namespace CMetalsFulfillment.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PickPackStationAssignments");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingList", b =>
-                {
-                    b.Property<Guid>("PickingListUid")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FOBPoint")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("ImportBranchId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PickingListNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("ShipDateLocal")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ShipToAddress")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ShipToCity")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ShipToName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ShipToState")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("ShipToZip")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("PickingListUid");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("ImportBranchId");
-
-                    b.ToTable("PickingLists");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListEvent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("OccurredAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PickingListUid")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PickingListUid");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PickingListEvents");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListLine", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AssignedPickPackStationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FulfillmentKind")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("ItemCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("LineNumber")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PickingListUid")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("QtyOrdered")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("UOM")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedPickPackStationId");
-
-                    b.HasIndex("PickingListUid");
-
-                    b.ToTable("PickingListLines");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShiftTemplate", b =>
@@ -1049,61 +905,6 @@ namespace CMetalsFulfillment.Migrations
                     b.Navigation("Station");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingList", b =>
-                {
-                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("ImportBranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListEvent", b =>
-                {
-                    b.HasOne("CMetalsFulfillment.Domain.PickingList", "PickingList")
-                        .WithMany()
-                        .HasForeignKey("PickingListUid")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PickingList");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListLine", b =>
-                {
-                    b.HasOne("CMetalsFulfillment.Domain.PickPackStation", "AssignedStation")
-                        .WithMany()
-                        .HasForeignKey("AssignedPickPackStationId");
-
-                    b.HasOne("CMetalsFulfillment.Domain.PickingList", "PickingList")
-                        .WithMany()
-                        .HasForeignKey("PickingListUid")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedStation");
-
-                    b.Navigation("PickingList");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShiftTemplate", b =>

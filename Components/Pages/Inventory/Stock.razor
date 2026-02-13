@@ -1,0 +1,62 @@
+@page "/inventory/stock"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" GutterBottom="true">Inventory Stock</MudText>
+
+<MudTable Items="@_stock" Hover="true" Filter="new Func<InventoryStock,bool>(FilterFunc)" Loading="@_loading">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Stock Levels</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search Item Code" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Item Code</MudTh>
+        <MudTh>Qty (PCS)</MudTh>
+        <MudTh>Weight (LBS)</MudTh>
+        <MudTh>Last Updated</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Item Code">@context.ItemCode</MudTd>
+        <MudTd DataLabel="Qty">@context.QuantityOnHand?.ToString("N0")</MudTd>
+        <MudTd DataLabel="Weight">@context.WeightOnHand?.ToString("N0")</MudTd>
+        <MudTd DataLabel="Updated">@context.LastUpdatedAtUtc.ToLocalTime().ToString("g")</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<InventoryStock> _stock = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStock();
+    }
+
+    private async Task LoadStock()
+    {
+        _loading = true;
+        try
+        {
+            _stock = await Http.GetFromJsonAsync<List<InventoryStock>>("api/inventory/stock") ?? new List<InventoryStock>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading stock: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private bool FilterFunc(InventoryStock item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (item.ItemCode.Contains(_searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

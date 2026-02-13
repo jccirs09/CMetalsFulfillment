@@ -22,6 +22,14 @@ namespace CMetalsFulfillment.Data
         public DbSet<ShippingFsaRule> ShippingFsaRules { get; set; }
         public DbSet<Item> Items { get; set; }
 
+        public DbSet<InventorySnapshot> InventorySnapshots { get; set; }
+        public DbSet<InventorySnapshotLine> InventorySnapshotLines { get; set; }
+        public DbSet<InventoryStock> InventoryStocks { get; set; }
+
+        public DbSet<PickingList> PickingLists { get; set; }
+        public DbSet<PickingListLine> PickingListLines { get; set; }
+        public DbSet<PickingListEvent> PickingListEvents { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

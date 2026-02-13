@@ -1,0 +1,124 @@
+@page "/picking-lists/{Uid:guid}"
+@using CMetalsFulfillment.Domain
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+@if (_pl == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Picking List: @_pl.PickingListNumber</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.subtitle2">Ship To</MudText>
+                <MudText>@_pl.ShipToName</MudText>
+                <MudText>@_pl.ShipToAddress</MudText>
+                <MudText>@_pl.ShipToCity, @_pl.ShipToState @_pl.ShipToZip</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.subtitle2">Info</MudText>
+                <MudText>Status: <b>@_pl.Status</b></MudText>
+                <MudText>FOB: @_pl.FOBPoint</MudText>
+                <MudText>Ship Date: @_pl.ShipDateLocal?.ToShortDateString()</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_lines" Hover="true">
+        <HeaderContent>
+            <MudTh>Line</MudTh>
+            <MudTh>Item Code</MudTh>
+            <MudTh>Qty</MudTh>
+            <MudTh>UOM</MudTh>
+            <MudTh>Fulfillment</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.LineNumber</MudTd>
+            <MudTd>@context.ItemCode</MudTd>
+            <MudTd>@context.QtyOrdered</MudTd>
+            <MudTd>@context.UOM</MudTd>
+            <MudTd>@context.FulfillmentKind</MudTd>
+            <MudTd>
+                @if (context.Status == "PendingCancel")
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Pending Cancel</MudChip>
+                }
+                else
+                {
+                    <MudText>@context.Status</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                @if (context.Status == "PendingCancel")
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => ConfirmCancel(context))">Confirm Cancel</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public Guid Uid { get; set; }
+
+    private PickingList? _pl;
+    private List<PickingListLine> _lines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PlDetailDto>($"api/pl/{Uid}");
+            if (result != null)
+            {
+                _pl = result.Header;
+                _lines = result.Lines;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading details: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ConfirmCancel(PickingListLine line)
+    {
+        try
+        {
+            var response = await Http.PostAsync($"api/pl/{Uid}/lines/{line.Id}/confirm-cancel", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Cancellation Confirmed", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Error confirming cancel", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public class PlDetailDto
+    {
+        public PickingList Header { get; set; } = new();
+        public List<PickingListLine> Lines { get; set; } = new();
+    }
+}

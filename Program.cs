@@ -6,6 +6,8 @@ using CMetalsFulfillment.Features.Auth;
 using CMetalsFulfillment.Features.Admin;
 using CMetalsFulfillment.Features.Config;
 using CMetalsFulfillment.Features.Items;
+using CMetalsFulfillment.Features.Inventory;
+using CMetalsFulfillment.Features.PickingLists;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -99,6 +101,8 @@ app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapConfigEndpoints();
 app.MapItemEndpoints();
+app.MapInventoryEndpoints();
+app.MapPickingListEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
