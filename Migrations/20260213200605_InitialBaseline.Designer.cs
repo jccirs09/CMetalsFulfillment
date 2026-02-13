@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMetalsFulfillment.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260213194740_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260213200605_InitialBaseline")]
+    partial class InitialBaseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
