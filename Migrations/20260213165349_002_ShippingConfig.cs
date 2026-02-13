@@ -28,7 +28,7 @@ namespace CMetalsFulfillment.Migrations
                         column: x => x.BranchId,
                         principalTable: "Branches",
                         principalColumn: "BranchId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -80,18 +80,19 @@ namespace CMetalsFulfillment.Migrations
                         column: x => x.BranchId,
                         principalTable: "Branches",
                         principalColumn: "BranchId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShippingFsaRules_ShippingGroups_ShippingGroupId",
                         column: x => x.ShippingGroupId,
                         principalTable: "ShippingGroups",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShippingFsaRules_ShippingRegions_ShippingRegionId",
                         column: x => x.ShippingRegionId,
                         principalTable: "ShippingRegions",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

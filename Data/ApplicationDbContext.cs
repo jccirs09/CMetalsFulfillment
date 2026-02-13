@@ -68,6 +68,31 @@ namespace CMetalsFulfillment.Data
             builder.Entity<PickingListLine>()
                 .Property(e => e.QtyOrdered)
                 .HasColumnType("decimal(18, 4)");
+
+            // Fix SQL Server Multiple Cascade Paths
+            builder.Entity<ShippingGroup>()
+                .HasOne(g => g.Branch)
+                .WithMany()
+                .HasForeignKey(g => g.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ShippingFsaRule>()
+                .HasOne(r => r.Branch)
+                .WithMany()
+                .HasForeignKey(r => r.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ShippingFsaRule>()
+                .HasOne(r => r.Region)
+                .WithMany()
+                .HasForeignKey(r => r.ShippingRegionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ShippingFsaRule>()
+                .HasOne(r => r.Group)
+                .WithMany()
+                .HasForeignKey(r => r.ShippingGroupId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         }
     }
 }
