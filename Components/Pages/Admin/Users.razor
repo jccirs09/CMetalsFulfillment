@@ -1,6 +1,7 @@
 @page "/admin/users"
 @using CMetalsFulfillment.Data
 @using CMetalsFulfillment.Domain
+@using CMetalsFulfillment.Features.Auth
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
@@ -8,7 +9,9 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject ApplicationDbContext Db
 @inject IDialogService DialogService
-@attribute [Authorize(Roles = "SystemAdmin")]
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IBranchContext BranchContext
+@attribute [Authorize(Policy = "AdminPolicy")]
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudText Typo="Typo.h3" GutterBottom="true">User Management</MudText>
@@ -53,10 +56,20 @@
 
     private async Task LoadUsersAsync()
     {
-        // Projection to avoid tracking issues and circular references
-        var users = await UserManager.Users
-            .Include(u => u.BranchMemberships).ThenInclude(m => m.Branch)
-            .ToListAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var isSystemAdmin = user.IsInRole("SystemAdmin");
+        var branchId = BranchContext.BranchId;
+
+        IQueryable<ApplicationUser> query = UserManager.Users
+            .Include(u => u.BranchMemberships).ThenInclude(m => m.Branch);
+
+        if (!isSystemAdmin)
+        {
+            query = query.Where(u => u.BranchMemberships.Any(m => m.BranchId == branchId));
+        }
+
+        var users = await query.ToListAsync();
 
         _users = users.Select(u => new UserDto
         {

@@ -29,11 +29,12 @@ builder.Services.AddScoped<SetupStatusService>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("BranchAccessPolicy", policy => policy.Requirements.Add(new BranchAccessRequirement()));
-    options.AddPolicy("CanAdminBranch", policy => policy.Requirements.Add(new BranchRoleRequirement("BranchAdmin")));
-    options.AddPolicy("CanPlan", policy => policy.Requirements.Add(new BranchRoleRequirement("Planner", "Supervisor", "BranchAdmin")));
-    options.AddPolicy("CanExecuteProduction", policy => policy.Requirements.Add(new BranchRoleRequirement("Operator", "Supervisor")));
-    options.AddPolicy("CanVerifyLoad", policy => policy.Requirements.Add(new BranchRoleRequirement("LoaderChecker", "Supervisor")));
-    options.AddPolicy("CanVerifyDelivery", policy => policy.Requirements.Add(new BranchRoleRequirement("Driver", "Supervisor")));
+    options.AddPolicy("AdminPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("BranchAdmin")));
+    options.AddPolicy("PlannerPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("Planner", "Supervisor", "BranchAdmin")));
+    options.AddPolicy("OperatorPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("Operator", "Supervisor", "BranchAdmin")));
+    options.AddPolicy("LoaderCheckerPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("LoaderChecker", "Supervisor", "BranchAdmin")));
+    options.AddPolicy("DriverPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("Driver", "Supervisor", "BranchAdmin")));
+    options.AddPolicy("ViewerPolicy", policy => policy.Requirements.Add(new BranchRoleRequirement("Viewer", "Driver", "LoaderChecker", "Operator", "Planner", "Supervisor", "BranchAdmin")));
 });
 
 builder.Services.AddAuthentication(options =>
@@ -56,8 +57,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
-    .AddDefaultTokenProviders()
-    .AddClaimsPrincipalFactory<CustomUserClaimsPrincipalFactory>();
+    .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 

@@ -40,7 +40,7 @@ namespace CMetalsFulfillment.Features.Auth
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var hasMembership = await db.UserBranchMemberships
+            var hasMembership = await db.UserBranchMemberships.AsNoTracking()
                 .AnyAsync(m => m.UserId == userId && m.BranchId == branchId && m.IsActive);
 
             if (hasMembership)
@@ -106,7 +106,7 @@ namespace CMetalsFulfillment.Features.Auth
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             // Check for any of the allowed roles for this branch
-            var hasRole = await db.UserBranchClaims
+            var hasRole = await db.UserBranchClaims.AsNoTracking()
                 .AnyAsync(c => c.UserId == userId && c.BranchId == branchId
                     && c.ClaimType == "role"
                     && requirement.AllowedRoles.Contains(c.ClaimValue)

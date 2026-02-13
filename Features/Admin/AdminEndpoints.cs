@@ -11,7 +11,7 @@ namespace CMetalsFulfillment.Features.Admin
     {
         public static void MapAdminEndpoints(this IEndpointRouteBuilder app)
         {
-            var group = app.MapGroup("/api/admin").RequireAuthorization();
+            var group = app.MapGroup("/api/admin").RequireAuthorization("AdminPolicy");
 
             group.MapPost("/users/{userId}/branches", async (
                 string userId,
@@ -20,22 +20,12 @@ namespace CMetalsFulfillment.Features.Admin
                 ClaimsPrincipal user,
                 IBranchContext branchContext) =>
             {
-                // Check permissions
-                // If user is SystemAdmin, allow.
-                // If adding to a branch, requestor must be BranchAdmin of that branch.
-                // Here, we can't easily rely on BranchContext if the request body specifies the branch.
-                // So we manually check.
-
                 bool isSystemAdmin = user.IsInRole("SystemAdmin");
-                if (!isSystemAdmin)
-                {
-                    // Check if user is BranchAdmin for the target branch
-                    var requestorId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-                    var hasAdmin = await db.UserBranchClaims
-                        .AnyAsync(c => c.UserId == requestorId && c.BranchId == dto.BranchId
-                            && c.ClaimType == "role" && c.ClaimValue == "BranchAdmin" && c.IsActive);
 
-                    if (!hasAdmin) return Results.Forbid();
+                // Ensure operation matches context branch (unless SystemAdmin)
+                if (!isSystemAdmin && branchContext.BranchId != dto.BranchId)
+                {
+                    return Results.Forbid();
                 }
 
                 var membership = await db.UserBranchMemberships
@@ -82,17 +72,14 @@ namespace CMetalsFulfillment.Features.Admin
                 string userId,
                 [FromBody] AssignClaimDto dto,
                 ApplicationDbContext db,
-                ClaimsPrincipal user) =>
+                ClaimsPrincipal user,
+                IBranchContext branchContext) =>
             {
                 bool isSystemAdmin = user.IsInRole("SystemAdmin");
-                if (!isSystemAdmin)
-                {
-                    var requestorId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-                    var hasAdmin = await db.UserBranchClaims
-                        .AnyAsync(c => c.UserId == requestorId && c.BranchId == dto.BranchId
-                            && c.ClaimType == "role" && c.ClaimValue == "BranchAdmin" && c.IsActive);
 
-                    if (!hasAdmin) return Results.Forbid();
+                if (!isSystemAdmin && branchContext.BranchId != dto.BranchId)
+                {
+                    return Results.Forbid();
                 }
 
                 var existing = await db.UserBranchClaims

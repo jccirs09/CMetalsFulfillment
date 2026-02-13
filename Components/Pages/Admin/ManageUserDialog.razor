@@ -1,9 +1,13 @@
 @using CMetalsFulfillment.Data
 @using CMetalsFulfillment.Domain
+@using CMetalsFulfillment.Features.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
 @using MudBlazor
 @inject ApplicationDbContext Db
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IBranchContext BranchContext
 
 <MudDialog>
     <DialogContent>
@@ -102,7 +106,18 @@
 
     private async Task LoadDataAsync()
     {
-        _allBranches = await Db.Branches.Where(b => b.IsActive).ToListAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var isSystemAdmin = user.IsInRole("SystemAdmin");
+        var currentBranchId = BranchContext.BranchId;
+
+        IQueryable<Branch> branchQuery = Db.Branches.Where(b => b.IsActive);
+        if (!isSystemAdmin)
+        {
+            branchQuery = branchQuery.Where(b => b.BranchId == currentBranchId);
+        }
+        _allBranches = await branchQuery.ToListAsync();
+
         _memberships = await Db.UserBranchMemberships
             .Include(m => m.Branch)
             .Where(m => m.UserId == UserId)
