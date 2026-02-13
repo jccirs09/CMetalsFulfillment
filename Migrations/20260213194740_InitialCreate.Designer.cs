@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMetalsFulfillment.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260213161655_001_Config_Machines_Stations_Shifts")]
-    partial class _001_Config_Machines_Stations_Shifts
+    [Migration("20260213194740_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -127,6 +127,214 @@ namespace CMetalsFulfillment.Migrations
                     b.ToTable("BranchSettings");
                 });
 
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventorySnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ImportedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImportedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("MatchedRows")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnmatchedRows")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.ToTable("InventorySnapshots");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventorySnapshotLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Correctable")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CountLocation")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("CountValue")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Exception")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ItemCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("LineNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MatchStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("MatchedItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Mode")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("SnapshotId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SnapshotLocation")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("SnapshotValue")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TagNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("UOM")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchedItemId");
+
+                    b.HasIndex("SnapshotId");
+
+                    b.ToTable("InventorySnapshotLines");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventoryStock", b =>
+                {
+                    b.Property<int>("InventoryStockId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryStockId"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("LastUpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("QuantityOnHand")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("WeightOnHand")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.HasKey("InventoryStockId");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("InventoryStocks");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.Item", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoilItemCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CoilRelationship")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("PoundsPerSquareFoot")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("UOM")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "ItemCode")
+                        .IsUnique();
+
+                    b.ToTable("Items");
+                });
+
             modelBuilder.Entity("CMetalsFulfillment.Domain.Machine", b =>
                 {
                     b.Property<int>("MachineId")
@@ -238,6 +446,153 @@ namespace CMetalsFulfillment.Migrations
                     b.ToTable("PickPackStationAssignments");
                 });
 
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingList", b =>
+                {
+                    b.Property<Guid>("PickingListUid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FOBPoint")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("ImportBranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PickingListNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ShipDateLocal")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ShipToAddress")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ShipToCity")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ShipToName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ShipToState")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ShipToZip")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("PickingListUid");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ImportBranchId");
+
+                    b.ToTable("PickingLists");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PickingListUid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PickingListUid");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PickingListEvents");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedPickPackStationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FulfillmentKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PickingListUid")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("QtyOrdered")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("UOM")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedPickPackStationId");
+
+                    b.HasIndex("PickingListUid");
+
+                    b.ToTable("PickingListLines");
+                });
+
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShiftTemplate", b =>
                 {
                     b.Property<int>("ShiftTemplateId")
@@ -272,6 +627,102 @@ namespace CMetalsFulfillment.Migrations
                     b.HasIndex("BranchId");
 
                     b.ToTable("ShiftTemplates");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingFsaRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FsaPrefix")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ShippingGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ShippingRegionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ShippingGroupId");
+
+                    b.HasIndex("ShippingRegionId");
+
+                    b.ToTable("ShippingFsaRules");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ShippingRegionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ShippingRegionId");
+
+                    b.ToTable("ShippingGroups");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingRegion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("ShippingRegions");
                 });
 
             modelBuilder.Entity("CMetalsFulfillment.Domain.UserBranchClaim", b =>
@@ -485,6 +936,64 @@ namespace CMetalsFulfillment.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventorySnapshot", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", "ImportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("ImportedByUser");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventorySnapshotLine", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Item", "MatchedItem")
+                        .WithMany()
+                        .HasForeignKey("MatchedItemId");
+
+                    b.HasOne("CMetalsFulfillment.Domain.InventorySnapshot", "Snapshot")
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MatchedItem");
+
+                    b.Navigation("Snapshot");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.InventoryStock", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.Item", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("CMetalsFulfillment.Domain.Machine", b =>
                 {
                     b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
@@ -545,7 +1054,117 @@ namespace CMetalsFulfillment.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingList", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("ImportBranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListEvent", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.PickingList", "PickingList")
+                        .WithMany()
+                        .HasForeignKey("PickingListUid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PickingList");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.PickingListLine", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.PickPackStation", "AssignedStation")
+                        .WithMany()
+                        .HasForeignKey("AssignedPickPackStationId");
+
+                    b.HasOne("CMetalsFulfillment.Domain.PickingList", "PickingList")
+                        .WithMany()
+                        .HasForeignKey("PickingListUid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedStation");
+
+                    b.Navigation("PickingList");
+                });
+
             modelBuilder.Entity("CMetalsFulfillment.Domain.ShiftTemplate", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingFsaRule", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Domain.ShippingGroup", "Group")
+                        .WithMany()
+                        .HasForeignKey("ShippingGroupId");
+
+                    b.HasOne("CMetalsFulfillment.Domain.ShippingRegion", "Region")
+                        .WithMany()
+                        .HasForeignKey("ShippingRegionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingGroup", b =>
+                {
+                    b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CMetalsFulfillment.Domain.ShippingRegion", "Region")
+                        .WithMany()
+                        .HasForeignKey("ShippingRegionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("CMetalsFulfillment.Domain.ShippingRegion", b =>
                 {
                     b.HasOne("CMetalsFulfillment.Domain.Branch", "Branch")
                         .WithMany()
