@@ -1,6 +1,10 @@
+using MudBlazor.Services;
 using CMetalsFulfillment.Components;
 using CMetalsFulfillment.Components.Account;
 using CMetalsFulfillment.Data;
+using CMetalsFulfillment.Features.Auth;
+using CMetalsFulfillment.Features.Admin;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -38,6 +43,32 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IBranchContext, BranchContext>();
+builder.Services.AddScoped<SetupGateService>();
+builder.Services.AddScoped<IAuthorizationHandler, BranchPermissionHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthConstants.PolicyBranchAccess, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement()));
+
+    options.AddPolicy(AuthConstants.PolicyCanAdminBranch, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement(AuthConstants.RoleBranchAdmin)));
+
+    options.AddPolicy(AuthConstants.PolicyCanPlan, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement(AuthConstants.RoleBranchAdmin, AuthConstants.RolePlanner, AuthConstants.RoleSupervisor)));
+
+    options.AddPolicy(AuthConstants.PolicyCanExecuteProduction, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement(AuthConstants.RoleBranchAdmin, AuthConstants.RoleSupervisor, AuthConstants.RoleOperator)));
+
+    options.AddPolicy(AuthConstants.PolicyCanVerifyLoad, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement(AuthConstants.RoleBranchAdmin, AuthConstants.RoleSupervisor, AuthConstants.RoleLoaderChecker)));
+
+    options.AddPolicy(AuthConstants.PolicyCanVerifyDelivery, policy =>
+        policy.Requirements.Add(new BranchRoleRequirement(AuthConstants.RoleBranchAdmin, AuthConstants.RoleSupervisor, AuthConstants.RoleDriver)));
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -62,5 +93,19 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+app.MapAuthEndpoints();
+app.MapAdminEndpoints();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    if (context.Database.IsRelational())
+    {
+        context.Database.Migrate();
+    }
+}
+
+await CMetalsFulfillment.Data.DbSeeder.SeedAsync(app.Services);
 
 app.Run();

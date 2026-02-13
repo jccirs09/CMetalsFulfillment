@@ -1,0 +1,25 @@
+@using CMetalsFulfillment.Features.Admin
+@inject SetupGateService SetupService
+
+@if (_status != null && !_status.IsComplete)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+        <MudText Typo="Typo.subtitle1" Inline="true">Branch Setup Incomplete: </MudText>
+        @if (!_status.HasMachines) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Machines</MudChip> }
+        @if (!_status.HasPickPackStations) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Stations</MudChip> }
+        @if (!_status.HasShiftTemplates) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Shifts</MudChip> }
+        @if (!_status.HasShippingRules) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Shipping Rules</MudChip> }
+        @if (!_status.HasItemMaster) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Items</MudChip> }
+
+        <MudLink Href="admin/setup" Color="Color.Inherit" Underline="Underline.Always" Class="ml-4">Fix Now</MudLink>
+    </MudAlert>
+}
+
+@code {
+    private BranchSetupStatus? _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await SetupService.GetStatusAsync();
+    }
+}

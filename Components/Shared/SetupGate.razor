@@ -1,0 +1,77 @@
+@using CMetalsFulfillment.Features.Admin
+@using Microsoft.AspNetCore.Components.Authorization
+@inject SetupGateService SetupService
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
+
+@if (_isLoading)
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+        <MudProgressCircular Indeterminate="true" />
+    </MudContainer>
+}
+else if (_status != null && !_status.IsComplete && !_isAllowedPage)
+{
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+            <MudText Typo="Typo.h5" Class="mb-2">Setup Required</MudText>
+            <MudText Align="Align.Center">This branch is not fully configured. Operational modules are blocked until setup is complete.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Surface" Class="mt-4" Href="admin/setup" Style="color: black;">Go to Setup Dashboard</MudButton>
+        </MudAlert>
+    </MudContainer>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private BranchSetupStatus? _status;
+    private bool _isLoading = true;
+    private bool _isAllowedPage = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckStatus();
+        NavManager.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await CheckStatus();
+        StateHasChanged();
+    }
+
+    private async Task CheckStatus()
+    {
+        _isLoading = true;
+
+        // Determine if current page is allowed
+        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+        var path = uri.AbsolutePath.ToLowerInvariant();
+
+        // Allowed paths:
+        // / (Home)
+        // /admin/*
+        // /account/* (Identity)
+
+        if (path == "/" || path.StartsWith("/admin") || path.StartsWith("/account") || path.StartsWith("/error"))
+        {
+            _isAllowedPage = true;
+            _isLoading = false;
+            return;
+        }
+
+        _isAllowedPage = false;
+        _status = await SetupService.GetStatusAsync();
+        _isLoading = false;
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}
