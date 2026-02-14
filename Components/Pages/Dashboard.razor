@@ -1,0 +1,78 @@
+@page "/"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@inject IBranchContext BranchContext
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IRoleResolver RoleResolver
+
+<PageTitle>Dashboard</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Dashboard</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5">Current Branch</MudText>
+            <MudText>@_branchName (@_branchCode)</MudText>
+            <MudText>Timezone: @_timezone</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5">My Roles</MudText>
+            @if (_roles != null)
+            {
+                <MudChipSet T="string">
+                    @foreach (var role in _roles)
+                    {
+                        <MudChip T="string" Color="Color.Primary">@role</MudChip>
+                    }
+                </MudChipSet>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _branchName = "Loading...";
+    private string _branchCode = "";
+    private string _timezone = "";
+    private List<string>? _roles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId != 0)
+        {
+            using var context = await DbFactory.CreateDbContextAsync();
+            var branch = await context.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.BranchId == branchId);
+            if (branch != null)
+            {
+                _branchName = branch.Name;
+                _branchCode = branch.Code;
+                _timezone = branch.Settings.TimezoneId;
+            }
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userId = UserManager.GetUserId(user);
+                 _roles = await context.BranchRoles
+                    .Where(r => r.UserId == userId && r.BranchId == branchId)
+                    .Select(r => r.RoleName)
+                    .AsNoTracking()
+                    .ToListAsync();
+            }
+        }
+        else
+        {
+            _branchName = "No Branch Selected";
+        }
+    }
+}
