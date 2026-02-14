@@ -72,7 +72,12 @@ app.MapAdditionalIdentityEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
-    await CMetalsFulfillment.Data.DbSeeder.SeedAsync(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    var dbFactory = services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+    using var db = await dbFactory.CreateDbContextAsync();
+    await db.Database.MigrateAsync();
+
+    await CMetalsFulfillment.Data.DbSeeder.SeedAsync(services);
 }
 
 app.Run();
