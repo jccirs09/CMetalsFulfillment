@@ -23,7 +23,8 @@ namespace CMetalsFulfillment.Features.Admin
                 bool isSystemAdmin = user.IsInRole("SystemAdmin");
 
                 // Ensure operation matches context branch (unless SystemAdmin)
-                if (!isSystemAdmin && branchContext.BranchId != dto.BranchId)
+                var currentBranchId = await branchContext.GetBranchIdAsync();
+                if (!isSystemAdmin && currentBranchId != dto.BranchId)
                 {
                     return Results.Forbid();
                 }
@@ -77,7 +78,8 @@ namespace CMetalsFulfillment.Features.Admin
             {
                 bool isSystemAdmin = user.IsInRole("SystemAdmin");
 
-                if (!isSystemAdmin && branchContext.BranchId != dto.BranchId)
+                var currentBranchId = await branchContext.GetBranchIdAsync();
+                if (!isSystemAdmin && currentBranchId != dto.BranchId)
                 {
                     return Results.Forbid();
                 }

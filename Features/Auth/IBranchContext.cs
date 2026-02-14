@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
+
 namespace CMetalsFulfillment.Features.Auth
 {
     public interface IBranchContext
     {
-        int BranchId { get; }
+        Task<int> GetBranchIdAsync();
     }
 }

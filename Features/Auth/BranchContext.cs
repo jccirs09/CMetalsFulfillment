@@ -16,7 +16,9 @@ namespace CMetalsFulfillment.Features.Auth
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly NavigationManager _navigationManager;
         private readonly AuthenticationStateProvider _authenticationStateProvider;
-        private readonly IServiceProvider _serviceProvider; // To resolve DbContext scope if needed
+        private readonly IServiceProvider _serviceProvider;
+
+        private int? _cachedBranchId;
 
         public BranchContext(
             IHttpContextAccessor httpContextAccessor,
@@ -30,16 +32,18 @@ namespace CMetalsFulfillment.Features.Auth
             _serviceProvider = serviceProvider;
         }
 
-        public int BranchId
+        public async Task<int> GetBranchIdAsync()
         {
-            get
+            if (_cachedBranchId.HasValue)
             {
-                // Synchronous wrapper
-                return ResolveBranchId();
+                return _cachedBranchId.Value;
             }
+
+            _cachedBranchId = await ResolveBranchIdAsync();
+            return _cachedBranchId.Value;
         }
 
-        private int ResolveBranchId()
+        private async Task<int> ResolveBranchIdAsync()
         {
             // 1. Try Query/Header/Route from HttpContext
             var httpContext = _httpContextAccessor.HttpContext;
@@ -60,12 +64,7 @@ namespace CMetalsFulfillment.Features.Auth
             catch { /* Ignore */ }
 
             // 3. Fallback to User Default
-            // We need to resolve DbContext here or use a factory because this might be called in a context where DbContext is already disposed or in use.
-            // But BranchContext is Scoped, so injecting DbContext is fine.
-            // However, doing async work synchronously is risky.
-
-            // Allow blocking for now as it's a requirement to expose property.
-            return GetUserDefaultBranchIdAsync().GetAwaiter().GetResult();
+            return await GetUserDefaultBranchIdAsync();
         }
 
         private async Task<int> GetUserDefaultBranchIdAsync()

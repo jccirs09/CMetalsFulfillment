@@ -25,7 +25,7 @@ namespace CMetalsFulfillment.Features.Auth
             if (context.User.Identity?.IsAuthenticated != true)
                 return;
 
-            var branchId = _branchContext.BranchId;
+            var branchId = await _branchContext.GetBranchIdAsync();
             if (branchId == 0)
             {
                 // No branch selected, fail.
@@ -92,7 +92,7 @@ namespace CMetalsFulfillment.Features.Auth
                 return;
             }
 
-            var branchId = _branchContext.BranchId;
+            var branchId = await _branchContext.GetBranchIdAsync();
             if (branchId == 0)
             {
                 context.Fail();

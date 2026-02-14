@@ -109,7 +109,7 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var isSystemAdmin = user.IsInRole("SystemAdmin");
-        var currentBranchId = BranchContext.BranchId;
+        var currentBranchId = await BranchContext.GetBranchIdAsync();
 
         IQueryable<Branch> branchQuery = Db.Branches.Where(b => b.IsActive);
         if (!isSystemAdmin)

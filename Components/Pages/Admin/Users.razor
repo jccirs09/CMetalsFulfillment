@@ -59,7 +59,7 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var isSystemAdmin = user.IsInRole("SystemAdmin");
-        var branchId = BranchContext.BranchId;
+        var branchId = await BranchContext.GetBranchIdAsync();
 
         IQueryable<ApplicationUser> query = UserManager.Users
             .Include(u => u.BranchMemberships).ThenInclude(m => m.Branch);

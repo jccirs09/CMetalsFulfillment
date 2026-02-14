@@ -1,0 +1,131 @@
+@page "/items"
+@using CMetalsFulfillment.Domain
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = "AdminPolicy")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">Item Master</MudText>
+
+    <MudStack Row="true" Class="mb-4">
+        <MudFileUpload T="IBrowserFile" Accept=".xlsx" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Import Items
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search Items" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" OnKeyUp="@(() => LoadItemsAsync())"></MudTextField>
+    </MudStack>
+
+    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading">
+        <HeaderContent>
+            <MudTh>Item Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>UOM</MudTh>
+            <MudTh>Coil Rel</MudTh>
+            <MudTh>PPSF</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Item Code">@context.ItemCode</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="UOM">@context.UOM</MudTd>
+            <MudTd DataLabel="Coil Rel">@context.CoilRelationship</MudTd>
+            <MudTd DataLabel="PPSF">@context.PoundsPerSquareFoot?.ToString("F4")</MudTd>
+            <MudTd DataLabel="Active">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Yes" : "No")</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditPpsf(context))">Edit PPSF</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Item> _items = new();
+    private string _searchString = "";
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItemsAsync();
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        _loading = true;
+        try
+        {
+            var url = "api/items";
+            if (!string.IsNullOrWhiteSpace(_searchString))
+            {
+                url += $"?search={Uri.EscapeDataString(_searchString)}";
+            }
+            _items = await Http.GetFromJsonAsync<List<Item>>(url) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading items: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        if (file == null) return;
+
+        // Limit size, e.g. 5MB
+        long maxFileSize = 1024 * 1024 * 5;
+
+        using var content = new MultipartFormDataContent();
+        try
+        {
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/items/import", content);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Items imported successfully", Severity.Success);
+                await LoadItemsAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Import failed: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Import error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task EditPpsf(Item item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var dialog = await DialogService.ShowAsync<PpsfDialog>("Edit PPSF", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadItemsAsync();
+        }
+    }
+}

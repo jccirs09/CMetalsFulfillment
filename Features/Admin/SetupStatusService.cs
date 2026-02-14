@@ -17,7 +17,7 @@ namespace CMetalsFulfillment.Features.Admin
 
         public async Task<BranchSetupStatusDto> GetStatusAsync()
         {
-            var branchId = _branchContext.BranchId;
+            var branchId = await _branchContext.GetBranchIdAsync();
             if (branchId == 0) return new BranchSetupStatusDto();
 
             var hasMachines = await _db.Machines.AnyAsync(m => m.BranchId == branchId && m.IsActive);

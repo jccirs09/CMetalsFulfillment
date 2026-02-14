@@ -15,8 +15,9 @@ namespace CMetalsFulfillment.Features.Config
             // Machines
             group.MapGet("/machines", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var machines = await db.Machines
-                    .Where(m => m.BranchId == branchContext.BranchId)
+                    .Where(m => m.BranchId == branchId)
                     .AsNoTracking()
                     .ToListAsync();
                 return Results.Ok(machines);
@@ -24,7 +25,8 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/machines", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] Machine machine) =>
             {
-                machine.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                machine.BranchId = branchId;
                 db.Machines.Add(machine);
                 await db.SaveChangesAsync();
                 return Results.Ok(machine);
@@ -33,7 +35,8 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/machines/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] Machine machine) =>
             {
                 if (id != machine.MachineId) return Results.BadRequest();
-                var existing = await db.Machines.FirstOrDefaultAsync(m => m.MachineId == id && m.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.Machines.FirstOrDefaultAsync(m => m.MachineId == id && m.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 existing.Name = machine.Name;
@@ -47,8 +50,9 @@ namespace CMetalsFulfillment.Features.Config
             // PickPack Stations
             group.MapGet("/stations", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var stations = await db.PickPackStations
-                    .Where(p => p.BranchId == branchContext.BranchId)
+                    .Where(p => p.BranchId == branchId)
                     .AsNoTracking()
                     .ToListAsync();
                 return Results.Ok(stations);
@@ -56,7 +60,8 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/stations", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] PickPackStation station) =>
             {
-                station.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                station.BranchId = branchId;
                 db.PickPackStations.Add(station);
                 await db.SaveChangesAsync();
                 return Results.Ok(station);
@@ -65,7 +70,8 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/stations/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] PickPackStation station) =>
             {
                 if (id != station.PickPackStationId) return Results.BadRequest();
-                var existing = await db.PickPackStations.FirstOrDefaultAsync(p => p.PickPackStationId == id && p.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.PickPackStations.FirstOrDefaultAsync(p => p.PickPackStationId == id && p.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 existing.Name = station.Name;
@@ -78,8 +84,9 @@ namespace CMetalsFulfillment.Features.Config
             // Shift Templates
             group.MapGet("/shifts", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var shifts = await db.ShiftTemplates
-                    .Where(s => s.BranchId == branchContext.BranchId)
+                    .Where(s => s.BranchId == branchId)
                     .AsNoTracking()
                     .ToListAsync();
                 return Results.Ok(shifts);
@@ -87,7 +94,8 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/shifts", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] ShiftTemplate shift) =>
             {
-                shift.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                shift.BranchId = branchId;
                 db.ShiftTemplates.Add(shift);
                 await db.SaveChangesAsync();
                 return Results.Ok(shift);
@@ -96,7 +104,8 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/shifts/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] ShiftTemplate shift) =>
             {
                 if (id != shift.ShiftTemplateId) return Results.BadRequest();
-                var existing = await db.ShiftTemplates.FirstOrDefaultAsync(s => s.ShiftTemplateId == id && s.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.ShiftTemplates.FirstOrDefaultAsync(s => s.ShiftTemplateId == id && s.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 existing.Name = shift.Name;
@@ -112,8 +121,9 @@ namespace CMetalsFulfillment.Features.Config
             // Shipping Regions
             group.MapGet("/shipping/regions", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var regions = await db.ShippingRegions
-                    .Where(r => r.BranchId == branchContext.BranchId)
+                    .Where(r => r.BranchId == branchId)
                     .AsNoTracking()
                     .ToListAsync();
                 return Results.Ok(regions);
@@ -121,7 +131,8 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/shipping/regions", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] ShippingRegion region) =>
             {
-                region.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                region.BranchId = branchId;
                 db.ShippingRegions.Add(region);
                 await db.SaveChangesAsync();
                 return Results.Ok(region);
@@ -130,7 +141,8 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/shipping/regions/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] ShippingRegion region) =>
             {
                 if (id != region.Id) return Results.BadRequest();
-                var existing = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == id && r.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == id && r.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 existing.Name = region.Name;
@@ -142,8 +154,9 @@ namespace CMetalsFulfillment.Features.Config
             // Shipping Groups
             group.MapGet("/shipping/groups", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var groups = await db.ShippingGroups
-                    .Where(g => g.BranchId == branchContext.BranchId)
+                    .Where(g => g.BranchId == branchId)
                     .Include(g => g.ShippingRegion)
                     .AsNoTracking()
                     .ToListAsync();
@@ -152,9 +165,10 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/shipping/groups", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] ShippingGroup group) =>
             {
-                group.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                group.BranchId = branchId;
                 // Verify Region belongs to branch
-                var region = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == group.ShippingRegionId && r.BranchId == branchContext.BranchId);
+                var region = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == group.ShippingRegionId && r.BranchId == branchId);
                 if (region == null) return Results.BadRequest("Invalid Region");
 
                 db.ShippingGroups.Add(group);
@@ -165,11 +179,12 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/shipping/groups/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] ShippingGroup group) =>
             {
                 if (id != group.Id) return Results.BadRequest();
-                var existing = await db.ShippingGroups.FirstOrDefaultAsync(g => g.Id == id && g.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.ShippingGroups.FirstOrDefaultAsync(g => g.Id == id && g.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 // Verify Region belongs to branch
-                var region = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == group.ShippingRegionId && r.BranchId == branchContext.BranchId);
+                var region = await db.ShippingRegions.FirstOrDefaultAsync(r => r.Id == group.ShippingRegionId && r.BranchId == branchId);
                 if (region == null) return Results.BadRequest("Invalid Region");
 
                 existing.Name = group.Name;
@@ -182,8 +197,9 @@ namespace CMetalsFulfillment.Features.Config
             // Shipping FSA Rules
             group.MapGet("/shipping/rules", async (ApplicationDbContext db, IBranchContext branchContext) =>
             {
+                var branchId = await branchContext.GetBranchIdAsync();
                 var rules = await db.ShippingFsaRules
-                    .Where(r => r.BranchId == branchContext.BranchId)
+                    .Where(r => r.BranchId == branchId)
                     .Include(r => r.ShippingRegion)
                     .Include(r => r.ShippingGroup)
                     .OrderBy(r => r.FsaPrefix).ThenByDescending(r => r.Priority)
@@ -194,16 +210,17 @@ namespace CMetalsFulfillment.Features.Config
 
             group.MapPost("/shipping/rules", async (ApplicationDbContext db, IBranchContext branchContext, [FromBody] ShippingFsaRule rule) =>
             {
-                rule.BranchId = branchContext.BranchId;
+                var branchId = await branchContext.GetBranchIdAsync();
+                rule.BranchId = branchId;
                 // Verify Region/Group if set
                 if (rule.ShippingRegionId.HasValue)
                 {
-                    var region = await db.ShippingRegions.AnyAsync(r => r.Id == rule.ShippingRegionId && r.BranchId == branchContext.BranchId);
+                    var region = await db.ShippingRegions.AnyAsync(r => r.Id == rule.ShippingRegionId && r.BranchId == branchId);
                     if (!region) return Results.BadRequest("Invalid Region");
                 }
                 if (rule.ShippingGroupId.HasValue)
                 {
-                    var group = await db.ShippingGroups.AnyAsync(g => g.Id == rule.ShippingGroupId && g.BranchId == branchContext.BranchId);
+                    var group = await db.ShippingGroups.AnyAsync(g => g.Id == rule.ShippingGroupId && g.BranchId == branchId);
                     if (!group) return Results.BadRequest("Invalid Group");
                 }
 
@@ -215,17 +232,18 @@ namespace CMetalsFulfillment.Features.Config
             group.MapPut("/shipping/rules/{id}", async (ApplicationDbContext db, IBranchContext branchContext, int id, [FromBody] ShippingFsaRule rule) =>
             {
                 if (id != rule.Id) return Results.BadRequest();
-                var existing = await db.ShippingFsaRules.FirstOrDefaultAsync(r => r.Id == id && r.BranchId == branchContext.BranchId);
+                var branchId = await branchContext.GetBranchIdAsync();
+                var existing = await db.ShippingFsaRules.FirstOrDefaultAsync(r => r.Id == id && r.BranchId == branchId);
                 if (existing == null) return Results.NotFound();
 
                 if (rule.ShippingRegionId.HasValue)
                 {
-                    var region = await db.ShippingRegions.AnyAsync(r => r.Id == rule.ShippingRegionId && r.BranchId == branchContext.BranchId);
+                    var region = await db.ShippingRegions.AnyAsync(r => r.Id == rule.ShippingRegionId && r.BranchId == branchId);
                     if (!region) return Results.BadRequest("Invalid Region");
                 }
                 if (rule.ShippingGroupId.HasValue)
                 {
-                    var group = await db.ShippingGroups.AnyAsync(g => g.Id == rule.ShippingGroupId && g.BranchId == branchContext.BranchId);
+                    var group = await db.ShippingGroups.AnyAsync(g => g.Id == rule.ShippingGroupId && g.BranchId == branchId);
                     if (!group) return Results.BadRequest("Invalid Group");
                 }
 

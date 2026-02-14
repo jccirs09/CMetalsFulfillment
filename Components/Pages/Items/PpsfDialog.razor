@@ -1,0 +1,46 @@
+@using CMetalsFulfillment.Domain
+@using CMetalsFulfillment.Features.Items
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Edit PPSF for @Item.ItemCode</MudText>
+        <MudNumericField @bind-Value="_ppsf" Label="Pounds Per Square Foot" Variant="Variant.Text" Step="0.0001M" Format="F4" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Item Item { get; set; } = new();
+
+    private decimal? _ppsf;
+
+    protected override void OnInitialized()
+    {
+        _ppsf = Item.PoundsPerSquareFoot;
+    }
+
+    private async Task Save()
+    {
+        var dto = new UpdatePpsfDto { PoundsPerSquareFoot = _ppsf };
+        var response = await Http.PutAsJsonAsync($"api/items/{Item.Id}/ppsf", dto);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("PPSF updated", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Error updating PPSF", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}
