@@ -1,0 +1,76 @@
+@page "/configuration/trucks"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject ITruckService TruckService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Trucks</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Add Truck</MudButton>
+    </MudStack>
+
+    <MudTable Items="_trucks" Hover="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Max Weight (Lbs)</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.TruckCode</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Weight">@context.MaxWeightLbs.ToString("N0")</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Truck> _trucks = new();
+    private bool _loading = true;
+    private int _branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _trucks = await TruckService.GetTrucksAsync(_branchId);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<TruckDialog>("Add Truck", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(Truck truck)
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["Truck"] = truck };
+        var dialog = await DialogService.ShowAsync<TruckDialog>("Edit Truck", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

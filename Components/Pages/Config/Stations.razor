@@ -1,0 +1,74 @@
+@page "/configuration/stations"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IStationService StationService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Pick & Pack Stations</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Add Station</MudButton>
+    </MudStack>
+
+    <MudTable Items="_stations" Hover="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.StationCode</MudTd>
+            <MudTd DataLabel="Name">@context.StationName</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<PickPackStation> _stations = new();
+    private bool _loading = true;
+    private int _branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _stations = await StationService.GetStationsAsync(_branchId);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<StationDialog>("Add Station", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(PickPackStation station)
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["Station"] = station };
+        var dialog = await DialogService.ShowAsync<StationDialog>("Edit Station", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

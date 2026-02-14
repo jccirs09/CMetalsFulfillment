@@ -1,0 +1,97 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IShiftService ShiftService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.ShiftCode" Label="Shift Code" Required="true" MaxLength="20" Disabled="@(_isEdit)" />
+            <MudTextField @bind-Value="_model.Name" Label="Shift Name" Required="true" MaxLength="100" />
+            <MudStack Row="true">
+                <MudTimePicker @bind-Time="_startTime" Label="Start Time" Required="true" />
+                <MudTimePicker @bind-Time="_endTime" Label="End Time" Required="true" />
+            </MudStack>
+            @if (_isOvernight)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">This is an overnight shift.</MudAlert>
+            }
+            <MudNumericField @bind-Value="_model.BreakMinutes" Label="Break Duration (Min)" Min="0" />
+            <MudSwitch @bind-Value="_model.IsActive" Label="Active" Color="Color.Primary" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public ShiftTemplate? Shift { get; set; }
+
+    private ShiftTemplate _model = new();
+    private bool _isEdit;
+    private MudForm _form = default!;
+    private TimeSpan? _startTime;
+    private TimeSpan? _endTime;
+
+    private bool _isOvernight => _startTime.HasValue && _endTime.HasValue && _endTime < _startTime;
+
+    protected override void OnInitialized()
+    {
+        if (Shift != null)
+        {
+            _model = new ShiftTemplate
+            {
+                Id = Shift.Id,
+                BranchId = Shift.BranchId,
+                ShiftCode = Shift.ShiftCode,
+                Name = Shift.Name,
+                StartLocalTime = Shift.StartLocalTime,
+                EndLocalTime = Shift.EndLocalTime,
+                BreakMinutes = Shift.BreakMinutes,
+                IsActive = Shift.IsActive
+            };
+            _startTime = _model.StartLocalTime.ToTimeSpan();
+            _endTime = _model.EndLocalTime.ToTimeSpan();
+            _isEdit = true;
+        }
+        else
+        {
+            _model.BranchId = BranchId;
+            _model.IsActive = true;
+            _startTime = new TimeSpan(8, 0, 0); // Default 8 AM
+            _endTime = new TimeSpan(16, 0, 0); // Default 4 PM
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_startTime.HasValue) _model.StartLocalTime = TimeOnly.FromTimeSpan(_startTime.Value);
+        if (_endTime.HasValue) _model.EndLocalTime = TimeOnly.FromTimeSpan(_endTime.Value);
+
+        try
+        {
+            if (_isEdit)
+            {
+                await ShiftService.UpdateShiftAsync(_model);
+            }
+            else
+            {
+                await ShiftService.CreateShiftAsync(_model);
+            }
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

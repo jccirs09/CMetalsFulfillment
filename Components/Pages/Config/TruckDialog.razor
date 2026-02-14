@@ -1,0 +1,76 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject ITruckService TruckService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.TruckCode" Label="Truck Code" Required="true" MaxLength="20" Disabled="@(_isEdit)" />
+            <MudTextField @bind-Value="_model.Description" Label="Description" Required="true" MaxLength="200" />
+            <MudNumericField @bind-Value="_model.MaxWeightLbs" Label="Max Weight (Lbs)" Min="0" Required="true" />
+            <MudSwitch @bind-Value="_model.IsActive" Label="Active" Color="Color.Primary" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public Truck? Truck { get; set; }
+
+    private Truck _model = new();
+    private bool _isEdit;
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Truck != null)
+        {
+            _model = new Truck
+            {
+                Id = Truck.Id,
+                BranchId = Truck.BranchId,
+                TruckCode = Truck.TruckCode,
+                Description = Truck.Description,
+                MaxWeightLbs = Truck.MaxWeightLbs,
+                IsActive = Truck.IsActive
+            };
+            _isEdit = true;
+        }
+        else
+        {
+            _model.BranchId = BranchId;
+            _model.IsActive = true;
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            if (_isEdit)
+            {
+                await TruckService.UpdateTruckAsync(_model);
+            }
+            else
+            {
+                await TruckService.CreateTruckAsync(_model);
+            }
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

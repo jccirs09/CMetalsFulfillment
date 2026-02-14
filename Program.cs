@@ -31,13 +31,11 @@ builder.Services.AddAuthentication(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Register Factory with Singleton lifetime (explicitly) and ensure Options are Singleton/Scoped correctly?
-// Actually, AddDbContextFactory defaults to Singleton. It needs DbContextOptions which are normally Scoped if added via AddDbContext.
-// We should configure options in the factory builder.
+// Register Factory (Singleton)
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
-// Register Scoped DbContext for Identity using the Factory
+// Register Scoped DbContext for Identity (resolves from Factory)
 builder.Services.AddScoped<ApplicationDbContext>(p =>
     p.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
@@ -61,6 +59,14 @@ builder.Services.AddScoped<IBranchContext, BranchContext>();
 builder.Services.AddScoped<IRoleResolver, RoleResolver>();
 builder.Services.AddScoped<ISetupStatusService, SetupStatusService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+// Phase 2 Services
+builder.Services.AddScoped<IMachineService, MachineService>();
+builder.Services.AddScoped<IStationService, StationService>();
+builder.Services.AddScoped<ITruckService, TruckService>();
+builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddScoped<IShippingConfigurationService, ShippingConfigurationService>();
 
 // Authorization
 builder.Services.AddScoped<IClaimsTransformation, BranchClaimsTransformation>();

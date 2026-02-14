@@ -24,22 +24,22 @@ public class SetupStatusService : ISetupStatusService
         gates["BranchAdmin"] = hasBranchAdmin;
 
         // 2. Machine
-        gates["Machine"] = false;
+        gates["Machine"] = await db.Machines.AnyAsync(m => m.BranchId == branchId && m.IsActive);
 
         // 3. PickPackStation
-        gates["PickPackStation"] = false;
+        gates["PickPackStation"] = await db.PickPackStations.AnyAsync(s => s.BranchId == branchId && s.IsActive);
 
         // 4. ShiftTemplate
-        gates["ShiftTemplate"] = false;
+        gates["ShiftTemplate"] = await db.ShiftTemplates.AnyAsync(s => s.BranchId == branchId && s.IsActive);
 
         // 5. Truck
-        gates["Truck"] = false;
+        gates["Truck"] = await db.Trucks.AnyAsync(t => t.BranchId == branchId && t.IsActive);
 
         // 6. ShippingFsaRule
-        gates["ShippingFsaRule"] = false;
+        gates["ShippingFsaRule"] = await db.ShippingFsaRules.AnyAsync(r => r.BranchId == branchId && r.IsActive);
 
         // 7. ShippingFobMapping
-        gates["ShippingFobMapping"] = false;
+        gates["ShippingFobMapping"] = await db.ShippingFobMappings.AnyAsync(m => m.BranchId == branchId && m.IsActive);
 
         return new SetupStatus { Gates = gates };
     }
