@@ -1,0 +1,44 @@
+@page "/setup-dashboard"
+@using CMetalsFulfillment.Services
+@inject SetupStatusService SetupService
+@inject IBranchContext BranchContext
+@inject NavigationManager Nav
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" GutterBottom="true">Setup Dashboard</MudText>
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudAlert Severity="@(isComplete ? Severity.Success : Severity.Warning)">
+            Setup Status: @(isComplete ? "Complete" : "Incomplete")
+        </MudAlert>
+
+        <MudPaper Class="pa-4 mt-4">
+            <MudText>Current Branch ID: @branchId</MudText>
+
+            <MudList T="string">
+                <MudListItem Icon="@(isComplete ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)">
+                    Basic Configuration
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private int branchId;
+    private bool isComplete;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        isComplete = SetupService.IsSetupComplete(branchId);
+        isLoading = false;
+    }
+}

@@ -4,6 +4,7 @@ using CMetalsFulfillment.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +24,8 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
+    options.UseSqlite(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -37,6 +38,12 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddMudServices();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<CMetalsFulfillment.Services.IBranchContext, CMetalsFulfillment.Services.BranchContext>();
+builder.Services.AddScoped<CMetalsFulfillment.Services.IRoleResolver, CMetalsFulfillment.Services.RoleResolver>();
+builder.Services.AddScoped<CMetalsFulfillment.Services.SetupStatusService>();
 
 var app = builder.Build();
 
@@ -62,5 +69,10 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+using (var scope = app.Services.CreateScope())
+{
+    await CMetalsFulfillment.Data.DbSeeder.SeedAsync(scope.ServiceProvider);
+}
 
 app.Run();
