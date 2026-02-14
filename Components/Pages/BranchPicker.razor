@@ -1,0 +1,86 @@
+@page "/branch-picker"
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data
+@inject IUserBranchService UserBranchService
+@inject IBranchContext BranchContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Select Branch</MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_memberships == null || !_memberships.Any())
+    {
+        <MudAlert Severity="Severity.Error">No branch memberships found for your account.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_memberships" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_isLoading" LoadingProgressColor="Color.Info">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Location</MudTh>
+                <MudTh>Default</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Code">@context.Branch.Code</MudTd>
+                <MudTd DataLabel="Name">@context.Branch.Name</MudTd>
+                <MudTd DataLabel="Location">@context.Branch.City, @context.Branch.Province</MudTd>
+                <MudTd DataLabel="Default">
+                    <MudSwitch T="bool" Value="@context.IsDefaultForUser" Color="Color.Primary" ValueChanged="@((val) => OnDefaultChanged(val, context))" />
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => SelectBranch(context.BranchId))" Disabled="@(BranchContext.ActiveBranchId == context.BranchId)">
+                        @(BranchContext.ActiveBranchId == context.BranchId ? "Active" : "Switch")
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private List<UserBranchMembership> _memberships = new();
+    private bool _isLoading = true;
+    private string _userId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        _userId = user.FindFirst("mf:userId")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(_userId))
+        {
+            _memberships = await UserBranchService.GetUserMembershipsAsync(_userId);
+        }
+        _isLoading = false;
+    }
+
+    private async Task OnDefaultChanged(bool isDefault, UserBranchMembership membership)
+    {
+        if (isDefault)
+        {
+            await UserBranchService.SetDefaultBranchAsync(_userId, membership.BranchId);
+            // Refresh local state
+            foreach (var m in _memberships)
+            {
+                m.IsDefaultForUser = (m.BranchId == membership.BranchId);
+            }
+            Snackbar.Add($"Default branch set to {membership.Branch.Code}", Severity.Success);
+        }
+    }
+
+    private async Task SelectBranch(int branchId)
+    {
+        await BranchContext.SetActiveBranchAsync(branchId);
+        // Force reload to apply cookie and refresh context
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

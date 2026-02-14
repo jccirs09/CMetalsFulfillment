@@ -1,0 +1,136 @@
+@page "/users"
+@using Microsoft.AspNetCore.Identity
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Components.Pages.UserDialogs
+@attribute [Authorize(Policy = "BranchAdmin")]
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserBranchService UserBranchService
+@inject IBranchContext BranchContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">User Administration</MudText>
+
+    <MudTable Items="_users" Hover="true" Breakpoint="Breakpoint.Sm" Filter="new Func<ApplicationUser,bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Users</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="ml-4" OnClick="AddUser">Add User</MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Email</MudTh>
+            <MudTh>Full Name</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Full Name">@context.FullName</MudTd>
+            <MudTd DataLabel="Active">
+                <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" Color="@(context.IsActive ? Color.Success : Color.Error)" />
+            </MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => ManageRoles(context))">Manage Roles</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<ApplicationUser> _users = new();
+    private string searchString = "";
+    private bool IsSystemAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        IsSystemAdmin = user.IsInRole("SystemAdmin") || user.HasClaim(c => c.Type == "mf:isSystemAdmin");
+
+        // Fetch users
+        // Note: In real app, perform DB query with filtering.
+        // Here we fetch all into memory for Phase 1 simplicity.
+        var allUsers = UserManager.Users.ToList();
+
+        if (IsSystemAdmin)
+        {
+            _users = allUsers;
+        }
+        else
+        {
+            // BranchAdmin: filter to users with membership in active branch
+            if (BranchContext.ActiveBranchId.HasValue)
+            {
+                var branchId = BranchContext.ActiveBranchId.Value;
+                var branchUsers = new List<ApplicationUser>();
+                foreach (var u in allUsers)
+                {
+                    if (await UserBranchService.HasMembershipAsync(u.Id, branchId))
+                    {
+                        branchUsers.Add(u);
+                    }
+                }
+                _users = branchUsers;
+            }
+        }
+    }
+
+    private bool FilterFunc(ApplicationUser user)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (user.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        if (user.FullName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        return false;
+    }
+
+    private async Task AddUser()
+    {
+        var parameters = new DialogParameters<AddUserDialog>();
+        parameters.Add(x => x.IsSystemAdmin, IsSystemAdmin);
+
+        var dialog = await DialogService.ShowAsync<AddUserDialog>("Add User", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Refresh list
+            var allUsers = UserManager.Users.ToList();
+            if (IsSystemAdmin)
+            {
+                _users = allUsers;
+            }
+            else
+            {
+                if (BranchContext.ActiveBranchId.HasValue)
+                {
+                    var branchId = BranchContext.ActiveBranchId.Value;
+                    var branchUsers = new List<ApplicationUser>();
+                    foreach (var u in allUsers)
+                    {
+                        if (await UserBranchService.HasMembershipAsync(u.Id, branchId))
+                        {
+                            branchUsers.Add(u);
+                        }
+                    }
+                    _users = branchUsers;
+                }
+            }
+            StateHasChanged();
+        }
+    }
+
+    private void ManageRoles(ApplicationUser user)
+    {
+        Snackbar.Add("Feature coming in Phase 1.1", Severity.Info);
+    }
+}

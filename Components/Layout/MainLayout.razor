@@ -1,9 +1,154 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager NavigationManager
+@inject IBranchContext BranchContext
+@inject ISetupStatusService SetupStatusService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
-@Body
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">MetalFlow</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                @if (BranchContext.ActiveBranchId.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Primary" Class="mr-4">
+                        @BranchContext.ActiveBranchCode - @BranchContext.ActiveTimeZoneId
+                    </MudChip>
+                    <MudText Class="mr-4">@LocalTimeStr</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OpenBranchPicker">Switch Branch</MudButton>
+                }
+                <MudMenu Label="@context.User.Identity?.Name" Color="Color.Inherit" EndIcon="@Icons.Material.Filled.ArrowDropDown">
+                    <MudMenuItem Href="Account/Manage">Profile</MudMenuItem>
+                    <MudMenuItem>
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                            <button type="submit" class="mud-menu-item-text mud-typography mud-typography-body1 mud-inherit-text w-100" style="background:none;border:none;text-align:left;padding:0;">
+                                Logout
+                            </button>
+                        </form>
+                    </MudMenuItem>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="Account/Login" Variant="Variant.Filled" Color="Color.Primary">Login</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Home</MudNavLink>
+            <MudNavLink Href="setup" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Setup Dashboard</MudNavLink>
+            <AuthorizeView Policy="BranchAdmin">
+                <MudNavLink Href="users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">User Admin</MudNavLink>
+            </AuthorizeView>
+        </MudNavMenu>
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+            @if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else if (_isBlocked && !IsAllowedPage(NavigationManager.Uri))
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+                    Branch Setup Incomplete. Operations are blocked. Please complete setup.
+                </MudAlert>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="setup">Go to Setup Dashboard</MudButton>
+            }
+            else
+            {
+                @Body
+            }
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isLoading = true;
+    private bool _isBlocked = false;
+    private string LocalTimeStr = "";
+    private string? currentUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = user.FindFirst("mf:userId")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await BranchContext.ResolveAsync(userId);
+                if (BranchContext.ActiveBranchId.HasValue)
+                {
+                    _isBlocked = !await SetupStatusService.IsSetupCompleteAsync(BranchContext.ActiveBranchId.Value);
+                    UpdateLocalTime();
+                }
+            }
+        }
+        _isLoading = false;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void OpenBranchPicker()
+    {
+        NavigationManager.NavigateTo("branch-picker");
+    }
+
+    private void UpdateLocalTime()
+    {
+        if (BranchContext.ActiveTimeZoneId != null)
+        {
+            try {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById(BranchContext.ActiveTimeZoneId);
+                LocalTimeStr = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).ToString("yyyy-MM-dd HH:mm");
+            } catch {
+                LocalTimeStr = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm UTC");
+            }
+        }
+    }
+
+    private bool IsAllowedPage(string uri)
+    {
+        return uri.Contains("/setup", StringComparison.OrdinalIgnoreCase) ||
+               uri.Contains("/Account", StringComparison.OrdinalIgnoreCase) ||
+               uri.Contains("/branch-picker", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
