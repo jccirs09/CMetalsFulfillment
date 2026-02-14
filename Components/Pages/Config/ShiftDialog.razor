@@ -1,0 +1,84 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject ISnackbar Snackbar
+@inject IRoleResolver RoleResolver
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IBranchContext BranchContext
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField @bind-Value="Shift.Name" Label="Shift Name" Required="true" RequiredError="Name is required!" />
+            <MudTimePicker Label="Start Time" @bind-Time="startTime" Required="true" />
+            <MudTimePicker Label="End Time" @bind-Time="endTime" Required="true" />
+            <MudCheckBox @bind-Value="Shift.IsOvernight" Label="Is Overnight Shift? (Requires Supervisor)" Disabled="@(!canEnableOvernight)" />
+            @if (!canEnableOvernight)
+            {
+                 <MudText Typo="Typo.caption" Color="Color.Error">Requires Supervisor role to enable overnight.</MudText>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public ShiftTemplate Shift { get; set; } = new();
+
+    private bool success;
+    private MudForm form;
+    private TimeSpan? startTime;
+    private TimeSpan? endTime;
+    private bool canEnableOvernight = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        startTime = Shift.StartTime;
+        endTime = Shift.EndTime;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var branchId = await BranchContext.GetBranchIdAsync();
+            if (!string.IsNullOrEmpty(userId) && branchId > 0)
+            {
+                 // Check if user is Supervisor or Admin
+                 var isSupervisor = await RoleResolver.HasRole(userId, branchId, "Supervisor");
+                 var isAdmin = await RoleResolver.HasRole(userId, branchId, "BranchAdmin") ||
+                               await RoleResolver.HasRole(userId, branchId, "SystemAdmin");
+
+                 canEnableOvernight = isSupervisor || isAdmin;
+            }
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+
+        if (success && startTime.HasValue && endTime.HasValue)
+        {
+            if (Shift.IsOvernight && !canEnableOvernight)
+            {
+                Snackbar.Add("You are not authorized to enable overnight shifts.", Severity.Error);
+                return;
+            }
+
+            Shift.StartTime = startTime.Value;
+            Shift.EndTime = endTime.Value;
+
+            await ConfigService.SaveShiftAsync(Shift);
+            Snackbar.Add("Shift saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Shift));
+        }
+    }
+}

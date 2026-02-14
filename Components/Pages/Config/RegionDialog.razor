@@ -1,0 +1,39 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField @bind-Value="Region.Name" Label="Region Name" Required="true" RequiredError="Name is required!" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public ShippingRegion Region { get; set; } = new();
+
+    private bool success;
+    private MudForm form;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+
+        if (success)
+        {
+            await ConfigService.SaveRegionAsync(Region);
+            Snackbar.Add("Region saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Region));
+        }
+    }
+}

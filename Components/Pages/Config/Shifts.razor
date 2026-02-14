@@ -1,0 +1,76 @@
+@page "/config/shifts"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Shift Templates</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenDialog())" Class="mb-4">Add Shift</MudButton>
+
+    <MudTable Items="@shifts" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Start Time</MudTh>
+            <MudTh>End Time</MudTh>
+            <MudTh>Overnight</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Start Time">@context.StartTime</MudTd>
+            <MudTd DataLabel="End Time">@context.EndTime</MudTd>
+            <MudTd DataLabel="Overnight">
+                <MudIcon Icon="@(context.IsOvernight ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" />
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenDialog(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<ShiftTemplate> shifts = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        shifts = await ConfigService.GetShiftsAsync(branchId);
+    }
+
+    private async Task OpenDialog(ShiftTemplate? shift = null)
+    {
+        var parameters = new DialogParameters<ShiftDialog>();
+        if (shift != null)
+        {
+            parameters.Add(x => x.Shift, shift);
+        }
+        else
+        {
+            parameters.Add(x => x.Shift, new ShiftTemplate { BranchId = branchId });
+        }
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ShiftDialog>(shift == null ? "Add Shift" : "Edit Shift", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+}

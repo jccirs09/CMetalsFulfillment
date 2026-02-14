@@ -1,0 +1,68 @@
+@page "/config/stations"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Pick & Pack Stations</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenDialog())" Class="mb-4">Add Station</MudButton>
+
+    <MudTable Items="@stations" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Actions">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenDialog(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<PickPackStation> stations = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        stations = await ConfigService.GetStationsAsync(branchId);
+    }
+
+    private async Task OpenDialog(PickPackStation? station = null)
+    {
+        var parameters = new DialogParameters<StationDialog>();
+        if (station != null)
+        {
+            parameters.Add(x => x.Station, station);
+        }
+        else
+        {
+            parameters.Add(x => x.Station, new PickPackStation { BranchId = branchId });
+        }
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<StationDialog>(station == null ? "Add Station" : "Edit Station", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+}

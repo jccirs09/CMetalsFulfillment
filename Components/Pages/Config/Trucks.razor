@@ -1,0 +1,70 @@
+@page "/config/trucks"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Trucks</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenDialog())" Class="mb-4">Add Truck</MudButton>
+
+    <MudTable Items="@trucks" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Max Weight (Lbs)</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Max Weight">@context.MaxWeightLbs</MudTd>
+            <MudTd DataLabel="Actions">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenDialog(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Truck> trucks = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        trucks = await ConfigService.GetTrucksAsync(branchId);
+    }
+
+    private async Task OpenDialog(Truck? truck = null)
+    {
+        var parameters = new DialogParameters<TruckDialog>();
+        if (truck != null)
+        {
+            parameters.Add(x => x.Truck, truck);
+        }
+        else
+        {
+            parameters.Add(x => x.Truck, new Truck { BranchId = branchId });
+        }
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<TruckDialog>(truck == null ? "Add Truck" : "Edit Truck", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+}

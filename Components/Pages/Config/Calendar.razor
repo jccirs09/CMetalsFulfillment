@@ -1,0 +1,77 @@
+@page "/config/calendar"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Non-Working Days</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenDialog())" Class="mb-4">Add Non-Working Day</MudButton>
+
+    <MudTable Items="@nonWorkingDays" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Actions">
+                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => Delete(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<NonWorkingDay> nonWorkingDays = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        nonWorkingDays = await ConfigService.GetNonWorkingDaysAsync(branchId);
+    }
+
+    private async Task OpenDialog()
+    {
+        var parameters = new DialogParameters<NonWorkingDayDialog>();
+        parameters.Add(x => x.NonWorkingDay, new NonWorkingDay { BranchId = branchId, Date = DateOnly.FromDateTime(DateTime.Today) });
+
+        var dialog = await DialogService.ShowAsync<NonWorkingDayDialog>("Add Non-Working Day", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task Delete(NonWorkingDay day)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete",
+            "Are you sure you want to delete this non-working day?",
+            yesText:"Delete!", cancelText:"Cancel");
+
+        if (result == true)
+        {
+            await ConfigService.DeleteNonWorkingDayAsync(day);
+            Snackbar.Add("Deleted", Severity.Info);
+            await LoadData();
+        }
+    }
+}

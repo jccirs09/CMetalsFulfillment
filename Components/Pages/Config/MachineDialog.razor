@@ -1,0 +1,41 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField @bind-Value="Machine.Name" Label="Machine Name" Required="true" RequiredError="Name is required!" />
+            <MudTextField @bind-Value="Machine.MachineType" Label="Type (CTL, Slitter)" Required="true" />
+            <MudTextField @bind-Value="Machine.Description" Label="Description" Lines="3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public Machine Machine { get; set; } = new();
+
+    private bool success;
+    private MudForm form;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+
+        if (success)
+        {
+            await ConfigService.SaveMachineAsync(Machine);
+            Snackbar.Add("Machine saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Machine));
+        }
+    }
+}

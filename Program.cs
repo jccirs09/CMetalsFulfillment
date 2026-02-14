@@ -44,6 +44,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CMetalsFulfillment.Services.IBranchContext, CMetalsFulfillment.Services.BranchContext>();
 builder.Services.AddScoped<CMetalsFulfillment.Services.IRoleResolver, CMetalsFulfillment.Services.RoleResolver>();
 builder.Services.AddScoped<CMetalsFulfillment.Services.SetupStatusService>();
+builder.Services.AddScoped<CMetalsFulfillment.Services.ConfigurationService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,101 @@
+@page "/config/shipping"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Shipping Configuration</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Regions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenRegionDialog())" Class="mb-4">Add Region</MudButton>
+            <MudTable Items="@regions" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Actions">
+                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenRegionDialog(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Groups">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenGroupDialog())" Class="mb-4">Add Group</MudButton>
+            <MudTable Items="@groups" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Actions">
+                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenGroupDialog(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private List<ShippingRegion> regions = new();
+    private List<ShippingGroup> groups = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        regions = await ConfigService.GetRegionsAsync(branchId);
+        groups = await ConfigService.GetGroupsAsync(branchId);
+    }
+
+    private async Task OpenRegionDialog(ShippingRegion? region = null)
+    {
+        var parameters = new DialogParameters<RegionDialog>();
+        if (region != null)
+        {
+            parameters.Add(x => x.Region, region);
+        }
+        else
+        {
+            parameters.Add(x => x.Region, new ShippingRegion { BranchId = branchId });
+        }
+
+        var dialog = await DialogService.ShowAsync<RegionDialog>(region == null ? "Add Region" : "Edit Region", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadData();
+    }
+
+    private async Task OpenGroupDialog(ShippingGroup? group = null)
+    {
+        var parameters = new DialogParameters<GroupDialog>();
+        if (group != null)
+        {
+            parameters.Add(x => x.Group, group);
+        }
+        else
+        {
+            parameters.Add(x => x.Group, new ShippingGroup { BranchId = branchId });
+        }
+
+        var dialog = await DialogService.ShowAsync<GroupDialog>(group == null ? "Add Group" : "Edit Group", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadData();
+    }
+}

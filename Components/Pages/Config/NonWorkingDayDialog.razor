@@ -1,0 +1,47 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject ConfigurationService ConfigService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudDatePicker Label="Date" @bind-Date="date" Required="true" />
+            <MudTextField @bind-Value="NonWorkingDay.Description" Label="Description" Required="true" RequiredError="Description is required!" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public NonWorkingDay NonWorkingDay { get; set; } = new();
+
+    private bool success;
+    private MudForm form;
+    private DateTime? date;
+
+    protected override void OnInitialized()
+    {
+        date = NonWorkingDay.Date.ToDateTime(TimeOnly.MinValue);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+
+        if (success && date.HasValue)
+        {
+            NonWorkingDay.Date = DateOnly.FromDateTime(date.Value);
+            await ConfigService.SaveNonWorkingDayAsync(NonWorkingDay);
+            Snackbar.Add("Saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(NonWorkingDay));
+        }
+    }
+}
