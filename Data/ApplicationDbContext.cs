@@ -21,6 +21,11 @@ namespace CMetalsFulfillment.Data
         public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
         public DbSet<NonWorkingDayOverride> NonWorkingDayOverrides { get; set; }
 
+        // Phase 3 Entities
+        public DbSet<ItemMaster> ItemMasters { get; set; }
+        public DbSet<InventorySnapshotHeader> InventorySnapshotHeaders { get; set; }
+        public DbSet<InventorySnapshot> InventorySnapshots { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -105,6 +110,25 @@ namespace CMetalsFulfillment.Data
             {
                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedByUserId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Phase 3 Configuration
+            builder.Entity<ItemMaster>(e =>
+            {
+                e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => new { x.BranchId, x.ItemCode }).IsUnique();
+            });
+
+            builder.Entity<InventorySnapshotHeader>(e =>
+            {
+                e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.UploadedByUser).WithMany().HasForeignKey(x => x.UploadedByUserId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<InventorySnapshot>(e =>
+            {
+                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+                 e.HasOne(x => x.Header).WithMany(h => h.Lines).HasForeignKey(x => x.SnapshotHeaderId).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

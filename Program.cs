@@ -45,6 +45,8 @@ builder.Services.AddScoped<CMetalsFulfillment.Services.IBranchContext, CMetalsFu
 builder.Services.AddScoped<CMetalsFulfillment.Services.IRoleResolver, CMetalsFulfillment.Services.RoleResolver>();
 builder.Services.AddScoped<CMetalsFulfillment.Services.SetupStatusService>();
 builder.Services.AddScoped<CMetalsFulfillment.Services.ConfigurationService>();
+builder.Services.AddScoped<CMetalsFulfillment.Services.InventoryService>();
+builder.Services.AddScoped<CMetalsFulfillment.Services.ItemImportService>();
 
 var app = builder.Build();
 

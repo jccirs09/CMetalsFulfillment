@@ -1,0 +1,91 @@
+@page "/inventory/items"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject InventoryService InvService
+@inject ItemImportService ImportService
+@inject IBranchContext BranchContext
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Item Master</MudText>
+
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Import Items
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+
+    <MudTable Items="@items" Hover="true" Breakpoint="Breakpoint.Sm" Class="mt-4">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Relationship</MudTh>
+            <MudTh>UOM</MudTh>
+            <MudTh>Total Qty</MudTh>
+            <MudTh>Total Weight (Lbs)</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.ItemCode</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Relationship">@context.CoilRelationship</MudTd>
+            <MudTd DataLabel="UOM">@context.Uom</MudTd>
+            <MudTd DataLabel="Qty">@context.TotalQuantity</MudTd>
+            <MudTd DataLabel="Weight">@context.TotalWeightLbs</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<CMetalsFulfillment.Data.ItemMaster> items = new();
+    private int branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            items = await InvService.GetItemMastersAsync(branchId);
+        }
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        if (file != null)
+        {
+            // Create a temp file to store the upload
+            var tempPath = Path.GetTempFileName();
+            try
+            {
+                using (var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024))
+                using (var fileStream = File.Create(tempPath))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+
+                using (var importStream = File.OpenRead(tempPath))
+                {
+                    await ImportService.ImportAsync(importStream, branchId);
+                }
+
+                Snackbar.Add("Import successful", Severity.Success);
+                items = await InvService.GetItemMastersAsync(branchId);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Import failed: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+        }
+    }
+}

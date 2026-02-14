@@ -1,0 +1,95 @@
+@page "/inventory/snapshots"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@inject InventoryService InvService
+@inject IBranchContext BranchContext
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Inventory Snapshots</MudText>
+
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadSnapshot">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Upload Snapshot
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+
+    <MudTable Items="@headers" Hover="true" Breakpoint="Breakpoint.Sm" Class="mt-4">
+        <HeaderContent>
+            <MudTh>Upload Date</MudTh>
+            <MudTh>Uploaded By</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.UploadDate.ToLocalTime()</MudTd>
+            <MudTd DataLabel="User">@context.UploadedByUser?.UserName</MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => ViewDetails(context))">View Lines</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<InventorySnapshotHeader> headers = new();
+    private int branchId;
+    private string userId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branchId = await BranchContext.GetBranchIdAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        if (branchId > 0)
+        {
+            headers = await InvService.GetSnapshotsAsync(branchId);
+        }
+    }
+
+    private async Task UploadSnapshot(IBrowserFile file)
+    {
+        if (file != null && !string.IsNullOrEmpty(userId))
+        {
+            var tempPath = Path.GetTempFileName();
+            try
+            {
+                using (var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024))
+                using (var fileStream = File.Create(tempPath))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+
+                using (var importStream = File.OpenRead(tempPath))
+                {
+                    await InvService.CreateSnapshotAsync(importStream, branchId, userId);
+                }
+
+                Snackbar.Add("Snapshot uploaded successfully", Severity.Success);
+                headers = await InvService.GetSnapshotsAsync(branchId);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+        }
+    }
+
+    private void ViewDetails(InventorySnapshotHeader header)
+    {
+        Snackbar.Add($"View details for snapshot {header.Id}", Severity.Info);
+    }
+}
