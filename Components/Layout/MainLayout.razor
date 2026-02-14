@@ -1,9 +1,139 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data.Entities
+@using System.Timers
+@inject IBranchContext BranchContext
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject NavigationManager NavManager
 
-@Body
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true" Fixed="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Class="ml-3">MetalFlow</MudText>
+        <MudSpacer />
+
+        @if (_currentBranch != null)
+        {
+            <MudChip T="string" Icon="@Icons.Material.Filled.LocationCity" Color="Color.Primary" Class="mr-4">
+                @_currentBranch.Code - @_currentBranch.Name
+            </MudChip>
+            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" Size="Size.Small" Class="mr-4" OnClick="OpenBranchPicker">Switch</MudButton>
+            <MudText Typo="Typo.body2" Class="mr-4">@_timeString</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" Class="mr-4">No Branch Selected</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="OpenBranchPicker">Select Branch</MudButton>
+        }
+
+        <MudAvatar Color="Color.Secondary" Size="Size.Small">@_userInitials</MudAvatar>
+        <MudText Typo="Typo.body2" Class="ml-2">@_userName</MudText>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Docked" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+    bool _isDarkMode = true;
+    MudTheme _theme = new MudTheme();
+    Branch? _currentBranch;
+    string _timeString = "";
+    string _userName = "";
+    string _userInitials = "U";
+    System.Timers.Timer? _timer;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentBranch = await BranchContext.GetBranchAsync();
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userName = user.Identity.Name ?? "User";
+            if (!string.IsNullOrEmpty(_userName))
+            {
+                _userInitials = _userName.Substring(0, 1).ToUpper();
+            }
+        }
+
+        StartTimer();
+    }
+
+    void StartTimer()
+    {
+        _timer = new System.Timers.Timer(1000);
+        _timer.Elapsed += (s, e) =>
+        {
+            UpdateTime();
+            InvokeAsync(StateHasChanged);
+        };
+        _timer.Start();
+        UpdateTime();
+    }
+
+    void UpdateTime()
+    {
+        if (_currentBranch != null)
+        {
+            try
+            {
+                TimeZoneInfo tz;
+                try
+                {
+                    tz = TimeZoneInfo.FindSystemTimeZoneById(_currentBranch.TimeZoneId);
+                }
+                catch
+                {
+                    tz = TimeZoneInfo.Utc;
+                }
+
+                var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+                _timeString = now.ToString("HH:mm:ss");
+            }
+            catch
+            {
+                _timeString = DateTime.Now.ToString("HH:mm:ss");
+            }
+        }
+    }
+
+    private async Task OpenBranchPicker()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        var dialog = await DialogService.ShowAsync<CMetalsFulfillment.Components.Shared.BranchPicker>("Select Branch", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            NavManager.Refresh(true);
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Stop();
+        _timer?.Dispose();
+    }
+}

@@ -1,0 +1,110 @@
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject IBranchContext BranchContext
+@inject AuthenticationStateProvider AuthState
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<MudDialog>
+    <DialogContent>
+        <MudTable Items="_memberships" Hover="true" OnRowClick="RowClickEvent" T="UserBranchMembership">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>City</MudTh>
+                <MudTh>Province</MudTh>
+                <MudTh>Default</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Code">@context.Branch.Code</MudTd>
+                <MudTd DataLabel="Name">@context.Branch.Name</MudTd>
+                <MudTd DataLabel="City">@context.Branch.City</MudTd>
+                <MudTd DataLabel="Province">@context.Branch.Province</MudTd>
+                <MudTd DataLabel="Default">
+                    <MudCheckBox T="bool" Value="@context.IsDefaultForUser" ValueChanged="@((v) => SetDefault(context, v))" Color="Color.Primary" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+        @if (_memberships.Count == 0)
+        {
+            <MudText Class="pa-4">No branch memberships found.</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<UserBranchMembership> _memberships = new();
+    private string _userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            if (!string.IsNullOrEmpty(_userId))
+            {
+                using var db = await DbFactory.CreateDbContextAsync();
+                _memberships = await db.UserBranchMemberships
+                    .Include(m => m.Branch)
+                    .Where(m => m.UserId == _userId && m.IsActive)
+                    .ToListAsync();
+            }
+        }
+    }
+
+    private async Task RowClickEvent(TableRowClickEventArgs<UserBranchMembership> args)
+    {
+        await BranchContext.SetBranchAsync(args.Item.BranchId);
+        if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task SetDefault(UserBranchMembership membership, bool isDefault)
+    {
+        if (isDefault)
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            var existingDefaults = await db.UserBranchMemberships
+                .Where(m => m.UserId == _userId && m.IsDefaultForUser)
+                .ToListAsync();
+
+            foreach (var m in existingDefaults)
+            {
+                m.IsDefaultForUser = false;
+            }
+
+            var target = await db.UserBranchMemberships.FindAsync(membership.Id);
+            if (target != null)
+            {
+                target.IsDefaultForUser = true;
+                await db.SaveChangesAsync();
+
+                membership.IsDefaultForUser = true;
+                foreach (var m in _memberships.Where(x => x.Id != membership.Id))
+                {
+                    m.IsDefaultForUser = false;
+                }
+            }
+        }
+        else
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            var target = await db.UserBranchMemberships.FindAsync(membership.Id);
+            if (target != null)
+            {
+                target.IsDefaultForUser = false;
+                await db.SaveChangesAsync();
+                membership.IsDefaultForUser = false;
+            }
+        }
+    }
+
+    private void Cancel() { if(MudDialog != null) MudDialog.Cancel(); }
+}

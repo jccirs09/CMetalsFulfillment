@@ -1,0 +1,100 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Manage Roles for User</MudText>
+        <MudStack>
+            @foreach (var role in _availableRoles)
+            {
+                <MudCheckBox T="bool" Label="@role" Value="@_selectedRoles.Contains(role)" ValueChanged="@((v) => ToggleRole(role, v))" Color="Color.Primary" />
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string UserId { get; set; } = string.Empty;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public List<string> CurrentRoles { get; set; } = new();
+
+    private List<string> _availableRoles = new() { "BranchAdmin", "Supervisor", "Planner", "Operator", "LoaderChecker", "Driver", "Viewer" };
+    private HashSet<string> _selectedRoles = new();
+
+    protected override void OnInitialized()
+    {
+        if (CurrentRoles != null)
+        {
+            _selectedRoles = new HashSet<string>(CurrentRoles);
+        }
+    }
+
+    private void ToggleRole(string role, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedRoles.Add(role);
+        }
+        else
+        {
+            _selectedRoles.Remove(role);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            var currentUser = (await AuthState.GetAuthenticationStateAsync()).User;
+            var assignedBy = currentUser.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+
+            using var db = await DbFactory.CreateDbContextAsync();
+            var existingRoles = await db.UserBranchRoles
+                .Where(r => r.UserId == UserId && r.BranchId == BranchId)
+                .ToListAsync();
+
+            // Add new roles
+            foreach (var role in _selectedRoles)
+            {
+                if (!existingRoles.Any(r => r.RoleName == role))
+                {
+                    db.UserBranchRoles.Add(new UserBranchRole
+                    {
+                        UserId = UserId,
+                        BranchId = BranchId,
+                        RoleName = role,
+                        AssignedByUserId = assignedBy,
+                        AssignedAtUtc = DateTime.UtcNow
+                    });
+                }
+            }
+
+            // Remove unselected roles
+            foreach (var existingRole in existingRoles)
+            {
+                if (!_selectedRoles.Contains(existingRole.RoleName))
+                {
+                    db.UserBranchRoles.Remove(existingRole);
+                }
+            }
+
+            await db.SaveChangesAsync();
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving roles: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}
