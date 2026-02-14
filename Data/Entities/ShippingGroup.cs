@@ -1,0 +1,9 @@
+namespace CMetalsFulfillment.Data.Entities;
+
+public class ShippingGroup
+{
+    public int Id { get; set; }
+    public int BranchId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}

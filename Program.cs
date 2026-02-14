@@ -2,6 +2,7 @@ using CMetalsFulfillment.Components;
 using CMetalsFulfillment.Components.Account;
 using CMetalsFulfillment.Data;
 using CMetalsFulfillment.Services;
+using CMetalsFulfillment.Services.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -24,6 +25,12 @@ builder.Services.AddScoped<IRoleResolver, RoleResolver>();
 builder.Services.AddScoped<IClaimsTransformation, BranchClaimsTransformation>();
 builder.Services.AddScoped<SetupStatusService>();
 builder.Services.AddScoped<DataSeeder>();
+
+// Configuration Services (Phase 2)
+builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<IShippingConfigService, ShippingConfigService>();
+builder.Services.AddScoped<IMachineService, MachineService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
 
 builder.Services.AddAuthentication(options =>
     {
