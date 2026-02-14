@@ -1,0 +1,47 @@
+@page "/setup"
+@using CMetalsFulfillment.Services
+@inject SetupStatusService SetupStatus
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h3" GutterBottom="true">System Setup</MudText>
+
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h6">Setup Status</MudText>
+        <MudDivider Class="my-2" />
+
+        <MudAlert Severity="@(_isComplete ? Severity.Success : Severity.Warning)" Class="my-2">
+            @(_isComplete ? "System setup is complete." : "System setup is incomplete.")
+        </MudAlert>
+
+        <MudList T="string">
+             <MudListItem Icon="@Icons.Material.Filled.Business" IconColor="@(_hasBranch ? Color.Success : Color.Error)">
+                Branch Configuration
+                @if (!_hasBranch)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error">At least one branch is required.</MudText>
+                }
+             </MudListItem>
+        </MudList>
+
+        @if (!_isComplete)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Href="Account/Register">Create User / Branch</MudButton>
+        }
+        else
+        {
+             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@(() => Navigation.NavigateTo("/"))">Go to Dashboard</MudButton>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isComplete;
+    private bool _hasBranch;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isComplete = await SetupStatus.IsSetupCompleteAsync();
+        _hasBranch = _isComplete;
+    }
+}
