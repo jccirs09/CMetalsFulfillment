@@ -1,0 +1,67 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@inject IBranchContext BranchContext
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+@if (_availableBranches != null && _availableBranches.Count > 1)
+{
+    <MudSelect T="int" Value="@_currentBranchId" ValueChanged="OnBranchChanged" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Class="ml-4" Style="min-width: 200px; background-color: white;" AnchorOrigin="Origin.BottomCenter">
+        @foreach (var branch in _availableBranches)
+        {
+            <MudSelectItem Value="@branch.BranchId">@branch.Name (@branch.Code)</MudSelectItem>
+        }
+    </MudSelect>
+}
+else if (_availableBranches != null && _availableBranches.Count == 1)
+{
+    <MudText Class="ml-4" Color="Color.Inherit">@_availableBranches[0].Name (@_availableBranches[0].Code)</MudText>
+}
+
+@code {
+    private int _currentBranchId;
+    private List<Branch>? _availableBranches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentBranchId = await BranchContext.GetBranchIdAsync();
+        await LoadBranchesAsync();
+    }
+
+    private async Task LoadBranchesAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = UserManager.GetUserId(user);
+            using var context = await DbFactory.CreateDbContextAsync();
+            _availableBranches = await context.BranchMemberships
+                .Where(m => m.UserId == userId)
+                .Select(m => m.Branch)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+    }
+
+    private async Task OnBranchChanged(int newBranchId)
+    {
+        if (newBranchId != _currentBranchId)
+        {
+            await BranchContext.SetBranchIdAsync(newBranchId);
+
+            NavigationManager.NavigateTo(
+                NavigationManager.GetUriWithQueryParameters(
+                    new Dictionary<string, object?> { ["branchId"] = newBranchId }
+                ),
+                forceLoad: true
+            );
+        }
+    }
+}
