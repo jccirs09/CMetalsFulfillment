@@ -3,6 +3,7 @@ using CMetalsFulfillment.Components.Account;
 using CMetalsFulfillment.Data;
 using CMetalsFulfillment.Services;
 using CMetalsFulfillment.Services.Configuration;
+using CMetalsFulfillment.Services.Inventory;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +32,10 @@ builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IShippingConfigService, ShippingConfigService>();
 builder.Services.AddScoped<IMachineService, MachineService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
+
+// Inventory Services (Phase 3)
+builder.Services.AddScoped<IItemMasterService, ItemMasterService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 builder.Services.AddAuthentication(options =>
     {

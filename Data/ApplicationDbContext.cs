@@ -31,6 +31,12 @@ namespace CMetalsFulfillment.Data
         public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
         public DbSet<NonWorkingDayOverride> NonWorkingDayOverrides { get; set; }
 
+        // Phase 3
+        public DbSet<ItemMaster> ItemMasters { get; set; }
+        public DbSet<InventorySnapshot> InventorySnapshots { get; set; }
+        public DbSet<InventorySnapshotLine> InventorySnapshotLines { get; set; }
+        public DbSet<InventoryStock> InventoryStocks { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -58,67 +64,47 @@ namespace CMetalsFulfillment.Data
                 .WithMany(u => u.BranchMemberships)
                 .HasForeignKey(x => x.UserId);
 
-            // Phase 2 - Unique Constraints (Name per Branch)
-            builder.Entity<Machine>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<PickPackStation>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<ShiftTemplate>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<Truck>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<ShippingRegion>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<ShippingGroup>()
-                .HasIndex(x => new { x.BranchId, x.Name })
-                .IsUnique();
-
-            builder.Entity<ShippingFsaRule>()
-                .HasIndex(x => new { x.BranchId, x.FsaPrefix })
-                .IsUnique();
-
-            builder.Entity<NonWorkingDay>()
-                .HasIndex(x => new { x.BranchId, x.Date })
-                .IsUnique();
-
-            builder.Entity<NonWorkingDayOverride>()
-                .HasIndex(x => new { x.BranchId, x.Date })
-                .IsUnique();
+            // Phase 2 - Unique Constraints
+            builder.Entity<Machine>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<PickPackStation>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<ShiftTemplate>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<Truck>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<ShippingRegion>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<ShippingGroup>().HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+            builder.Entity<ShippingFsaRule>().HasIndex(x => new { x.BranchId, x.FsaPrefix }).IsUnique();
+            builder.Entity<NonWorkingDay>().HasIndex(x => new { x.BranchId, x.Date }).IsUnique();
+            builder.Entity<NonWorkingDayOverride>().HasIndex(x => new { x.BranchId, x.Date }).IsUnique();
 
             // Phase 2 - Relationships
             builder.Entity<ShippingFsaRule>()
-                .HasOne(x => x.ShippingRegion)
-                .WithMany()
-                .HasForeignKey(x => x.ShippingRegionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
+                .HasOne(x => x.ShippingRegion).WithMany().HasForeignKey(x => x.ShippingRegionId).OnDelete(DeleteBehavior.Restrict);
             builder.Entity<ShippingFsaRule>()
-                .HasOne(x => x.ShippingGroup)
-                .WithMany()
-                .HasForeignKey(x => x.ShippingGroupId)
-                .OnDelete(DeleteBehavior.Restrict);
-
+                .HasOne(x => x.ShippingGroup).WithMany().HasForeignKey(x => x.ShippingGroupId).OnDelete(DeleteBehavior.Restrict);
             builder.Entity<MachineOperatorAssignment>()
-                .HasOne(x => x.Machine)
-                .WithMany()
-                .HasForeignKey(x => x.MachineId)
-                .OnDelete(DeleteBehavior.Cascade);
-
+                .HasOne(x => x.Machine).WithMany().HasForeignKey(x => x.MachineId).OnDelete(DeleteBehavior.Cascade);
             builder.Entity<MachineOperatorAssignment>()
-                .HasOne(x => x.User)
-                .WithMany()
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+
+            // Phase 3 - Indexes
+            builder.Entity<ItemMaster>()
+                .HasIndex(x => new { x.BranchId, x.ItemCode })
+                .IsUnique();
+
+            builder.Entity<InventorySnapshot>()
+                .HasIndex(x => new { x.BranchId, x.UploadedAtUtc });
+
+            builder.Entity<InventorySnapshotLine>()
+                .HasIndex(x => x.SnapshotId);
+
+            builder.Entity<InventorySnapshotLine>()
+                .HasIndex(x => new { x.BranchId, x.ItemCode });
+
+            builder.Entity<InventorySnapshotLine>()
+                .HasIndex(x => new { x.BranchId, x.TagNumber });
+
+            builder.Entity<InventoryStock>()
+                .HasIndex(x => new { x.BranchId, x.TagNumber })
+                .IsUnique();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
