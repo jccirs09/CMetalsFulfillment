@@ -1,9 +1,41 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using CMetalsFulfillment.Services
+@inject SetupStatusService SetupStatus
+@inject NavigationManager Navigation
 
-@Body
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var path = uri.AbsolutePath;
+
+        // Skip check for setup page itself and Account pages (Identity)
+        if (!path.Equals("/setup", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/_content", StringComparison.OrdinalIgnoreCase))
+        {
+            var isComplete = await SetupStatus.IsSetupCompleteAsync();
+            if (!isComplete)
+            {
+                Navigation.NavigateTo("/setup");
+            }
+        }
+    }
+}
