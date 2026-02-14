@@ -1,0 +1,72 @@
+@page "/"
+@page "/setup-dashboard"
+@using CMetalsFulfillment.Services
+@inject SetupStatusService SetupStatusService
+@inject IBranchContext BranchContext
+@inject NavigationManager NavManager
+
+<PageTitle>Setup Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">Setup Dashboard</MudText>
+
+    @if (!BranchContext.ActiveBranchId.HasValue)
+    {
+        <MudAlert Severity="Severity.Warning">No Active Branch. Please switch to a branch using the top bar.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4">
+            @if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="mb-4">@BranchContext.ActiveBranchCode Setup Status</MudText>
+
+                @if (_isSetupComplete)
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4">Branch Setup Complete! Operational modules are accessible.</MudAlert>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">Branch Setup Incomplete. Operational modules are blocked.</MudAlert>
+
+                    <MudList T="string">
+                        @foreach (var step in _missingSteps)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.Warning" IconColor="Color.Warning">
+                                @step
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSetupComplete;
+    private List<string> _missingSteps = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (BranchContext.ActiveBranchId.HasValue)
+        {
+            _isLoading = true;
+            _isSetupComplete = await SetupStatusService.IsSetupCompleteAsync(BranchContext.ActiveBranchId.Value);
+            if (!_isSetupComplete)
+            {
+                _missingSteps = await SetupStatusService.GetMissingSetupStepsAsync(BranchContext.ActiveBranchId.Value);
+            }
+            _isLoading = false;
+        }
+        else
+        {
+            _isLoading = false;
+        }
+    }
+}

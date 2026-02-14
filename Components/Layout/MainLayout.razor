@@ -1,9 +1,149 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Services.Auth
+@using CMetalsFulfillment.Components.Pages
 
-@Body
+@inject NavigationManager NavManager
+@inject IBranchContext BranchContext
+@inject BranchService BranchService
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+@inject ILogger<MainLayout> Logger
+@inject CookieService CookieService
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h5" Class="ml-3">MetalFlow</MudText>
+        <MudSpacer />
+        @if (BranchContext.ActiveBranchId.HasValue)
+        {
+            <MudText Class="mr-4">@BranchContext.ActiveBranchCode - @BranchContext.ActiveTimeZoneId</MudText>
+        }
+        else
+        {
+             <MudText Class="mr-4" Color="Color.Error">No Branch Selected</MudText>
+        }
+
+        <AuthorizeView>
+            <Authorized>
+                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OpenBranchPicker" Class="mr-4">Switch Branch</MudButton>
+                 <MudText>@context.User.Identity?.Name</MudText>
+            </Authorized>
+            <NotAuthorized>
+                <a href="Account/Login">Log in</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (BranchContext.ActiveBranchId.HasValue) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true) return;
+
+        var userId = user.FindFirst("mf:userId")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return;
+
+        int? branchIdToSet = null;
+
+        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("branchId", out var branchIdStr))
+        {
+            if (int.TryParse(branchIdStr, out var bid))
+            {
+                branchIdToSet = bid;
+            }
+        }
+
+        if (!branchIdToSet.HasValue)
+        {
+             var defaultBranchClaim = user.FindFirst("mf:defaultBranchId")?.Value;
+             if (!string.IsNullOrEmpty(defaultBranchClaim) && int.TryParse(defaultBranchClaim, out var dbid))
+             {
+                 branchIdToSet = dbid;
+             }
+             else
+             {
+                 branchIdToSet = await BranchService.GetUserDefaultBranchIdAsync(userId);
+             }
+        }
+
+        if (branchIdToSet.HasValue)
+        {
+            var branch = await BranchService.GetBranchByIdAsync(branchIdToSet.Value);
+            if (branch != null)
+            {
+                var userBranches = await BranchService.GetUserBranchesAsync(userId);
+                var isSystemAdmin = user.HasClaim(c => c.Type == "mf:isSystemAdmin");
+
+                if (isSystemAdmin || userBranches.Any(b => b.Id == branch.Id))
+                {
+                    BranchContext.SetBranch(branch.Id, branch.Code, branch.TimeZoneId);
+                }
+                else
+                {
+                    Logger.LogWarning("User {User} tried to access branch {BranchId} without permission.", userId, branchIdToSet);
+                }
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !BranchContext.ActiveBranchId.HasValue)
+        {
+             try
+             {
+                 var cookieBranchId = await CookieService.GetCookieAsync("mf.branch");
+                 if (!string.IsNullOrEmpty(cookieBranchId) && int.TryParse(cookieBranchId, out var bid))
+                 {
+                     var branch = await BranchService.GetBranchByIdAsync(bid);
+                     if (branch != null)
+                     {
+                         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                         var user = authState.User;
+                         var userId = user.FindFirst("mf:userId")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                         if (userId != null)
+                         {
+                             var userBranches = await BranchService.GetUserBranchesAsync(userId);
+                             var isSystemAdmin = user.HasClaim(c => c.Type == "mf:isSystemAdmin");
+
+                             if (isSystemAdmin || userBranches.Any(b => b.Id == branch.Id))
+                             {
+                                 BranchContext.SetBranch(branch.Id, branch.Code, branch.TimeZoneId);
+                                 StateHasChanged();
+                             }
+                         }
+                     }
+                 }
+             }
+             catch (Exception ex)
+             {
+                 Logger.LogError(ex, "Error reading branch cookie.");
+             }
+        }
+    }
+
+    private async Task OpenBranchPicker()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        await DialogService.ShowAsync<Components.Pages.BranchPicker>("Select Branch", options);
+    }
+}
