@@ -1,0 +1,79 @@
+@page "/admin/users"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
+@inject BranchService BranchService
+@inject IBranchContext BranchContext
+@inject ISnackbar Snackbar
+@attribute [Authorize(Policy = "AdminPolicy")]
+
+<PageTitle>User Administration</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">User Administration</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@_users" Hover="true" Filter="new Func<ApplicationUser,bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Users</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateUser" Class="mr-4">Create User</MudButton>
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Email</MudTh>
+                <MudTh>Full Name</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+                <MudTd DataLabel="FullName">@context.FullName</MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ManageRoles(context))">Manage Roles</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private List<ApplicationUser> _users = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserManager.Users.ToListAsync();
+        _loading = false;
+    }
+
+    private bool FilterFunc(ApplicationUser user)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (user.Email?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.FullName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private void ManageRoles(ApplicationUser user)
+    {
+        Snackbar.Add($"Manage Roles for {user.Email} (Functionality Placeholder)", Severity.Info);
+    }
+
+    private void CreateUser()
+    {
+        Snackbar.Add("Create User Functionality Pending Implementation", Severity.Info);
+    }
+}
