@@ -23,6 +23,7 @@ builder.Services.AddScoped<IBranchContext, BranchContext>();
 builder.Services.AddScoped<IRoleResolver, RoleResolver>();
 builder.Services.AddScoped<IClaimsTransformation, BranchClaimsTransformation>();
 builder.Services.AddScoped<SetupStatusService>();
+builder.Services.AddScoped<DataSeeder>();
 
 builder.Services.AddAuthentication(options =>
     {
@@ -32,8 +33,15 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+// Register DbContext Factory (Singleton/Scoped depending on implementation, but mainly for Blazor components)
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
+
+// Register DbContext as Scoped Service for Identity and Scoped Services (using Factory)
+builder.Services.AddScoped<ApplicationDbContext>(p =>
+    p.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -41,6 +49,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
+    .AddRoles<IdentityRole>() // Add Role Management
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
@@ -50,6 +59,13 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddMudServices();
 
 var app = builder.Build();
+
+// Run Seeder
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    await seeder.SeedAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
