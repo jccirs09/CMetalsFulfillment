@@ -1,0 +1,48 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IShippingConfigurationService ShippingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.RegionCode" Label="Region Code" Required="true" MaxLength="20" />
+            <MudTextField @bind-Value="_model.RegionName" Label="Region Name" Required="true" MaxLength="100" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+
+    private ShippingRegion _model = new();
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        _model.BranchId = BranchId;
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            await ShippingService.CreateRegionAsync(_model);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

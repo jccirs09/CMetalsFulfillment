@@ -1,0 +1,84 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Data.Enums
+@using CMetalsFulfillment.Services
+@inject IMachineService MachineService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.MachineCode" Label="Machine Code" Required="true" MaxLength="20" Disabled="@(_isEdit)" />
+            <MudTextField @bind-Value="_model.MachineName" Label="Machine Name" Required="true" MaxLength="100" />
+            <MudSelect @bind-Value="_model.MachineType" Label="Type" Required="true">
+                <MudSelectItem Value="MachineType.CTL">CTL</MudSelectItem>
+                <MudSelectItem Value="MachineType.Slitter">Slitter</MudSelectItem>
+            </MudSelect>
+            <MudNumericField @bind-Value="_model.DefaultDurationMinutes" Label="Default Duration (Min)" Min="1" />
+            <MudSwitch @bind-Value="_model.IsActive" Label="Active" Color="Color.Primary" />
+            <MudTextField @bind-Value="_model.Notes" Label="Notes" Lines="3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public Machine? Machine { get; set; }
+
+    private Machine _model = new();
+    private bool _isEdit;
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Machine != null)
+        {
+            _model = new Machine
+            {
+                Id = Machine.Id,
+                BranchId = Machine.BranchId,
+                MachineCode = Machine.MachineCode,
+                MachineName = Machine.MachineName,
+                MachineType = Machine.MachineType,
+                DefaultDurationMinutes = Machine.DefaultDurationMinutes,
+                IsActive = Machine.IsActive,
+                Notes = Machine.Notes
+            };
+            _isEdit = true;
+        }
+        else
+        {
+            _model.BranchId = BranchId;
+            _model.IsActive = true;
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            if (_isEdit)
+            {
+                await MachineService.UpdateMachineAsync(_model);
+            }
+            else
+            {
+                await MachineService.CreateMachineAsync(_model);
+            }
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

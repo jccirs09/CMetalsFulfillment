@@ -1,0 +1,114 @@
+@page "/inventory/tags"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Data.Enums
+@using CMetalsFulfillment.Services
+@inject IInventoryService InventoryService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Inventory Tags</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search Tag or SKU" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" OnTextChanged="OnSearch" Immediate="true"></MudTextField>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenReceiveDialog">Receive Tag</MudButton>
+    </MudStack>
+
+    <MudTable Items="_tags" Hover="true" Loading="_loading" Dense="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Tag #</MudTh>
+            <MudTh>SKU</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Net Wgt</MudTh>
+            <MudTh>Location</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Tag">@context.TagNumber</MudTd>
+            <MudTd DataLabel="SKU">@context.Item.Sku</MudTd>
+            <MudTd DataLabel="Desc">@context.Item.Description</MudTd>
+            <MudTd DataLabel="Net">@context.WeightNet.ToString("N0")</MudTd>
+            <MudTd DataLabel="Loc">@context.Location</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">
+                    @context.Status
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OpenMoveDialog(context))">Move</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Tag> _tags = new();
+    private bool _loading = true;
+    private int _branchId;
+    private string _searchString = "";
+    private string _userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _tags = await InventoryService.GetTagsAsync(_branchId, _searchString);
+        }
+        _loading = false;
+    }
+
+    private async Task OnSearch(string text)
+    {
+        _searchString = text;
+        await LoadData();
+    }
+
+    private Color GetStatusColor(TagStatus status) => status switch
+    {
+        TagStatus.Received => Color.Success,
+        TagStatus.OnHold => Color.Warning,
+        TagStatus.Allocated => Color.Info,
+        TagStatus.Consumed => Color.Default,
+        TagStatus.Shipped => Color.Dark,
+        _ => Color.Default
+    };
+
+    private async Task OpenReceiveDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["UserId"] = _userId };
+        var dialog = await DialogService.ShowAsync<ReceiveTagDialog>("Receive Tag", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenMoveDialog(Tag tag)
+    {
+        // Placeholder for move logic - simple prompt for now
+        // Ideally a dedicated dialog
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["UserId"] = _userId, ["Tag"] = tag };
+        var dialog = await DialogService.ShowAsync<MoveTagDialog>("Move Tag", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

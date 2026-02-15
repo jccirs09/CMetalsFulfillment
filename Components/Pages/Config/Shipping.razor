@@ -1,0 +1,227 @@
+@page "/configuration/shipping"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Data.Enums
+@using CMetalsFulfillment.Services
+@inject IShippingConfigurationService ShippingService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" Class="mb-4">Shipping Configuration</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Regions & Groups">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.h6">Regions</MudText>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="AddRegion">Add</MudButton>
+                    </MudStack>
+                    <MudTable Items="_regions" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Code</MudTh>
+                            <MudTh>Name</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.RegionCode</MudTd>
+                            <MudTd>@context.RegionName</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.h6">Groups</MudText>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="AddGroup">Add</MudButton>
+                    </MudStack>
+                    <MudTable Items="_groups" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Code</MudTh>
+                            <MudTh>Name</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.GroupCode</MudTd>
+                            <MudTd>@context.GroupName</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="FSA Rules">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudText Typo="Typo.h6">FSA Routing Rules</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddFsaRule">Add Rule</MudButton>
+            </MudStack>
+
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTable Items="_fsaRules" Dense="true" Hover="true" SortLabel="Sort By">
+                        <HeaderContent>
+                            <MudTh><MudTableSortLabel SortBy="new Func<ShippingFsaRule, object>(x=>x.Priority)">Priority</MudTableSortLabel></MudTh>
+                            <MudTh>FSA Prefix</MudTh>
+                            <MudTh>Region</MudTh>
+                            <MudTh>Group</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Priority</MudTd>
+                            <MudTd>@context.FsaPrefix</MudTd>
+                            <MudTd>@context.Region.RegionName</MudTd>
+                            <MudTd>@context.Group.GroupName</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-2">Test FSA</MudText>
+                        <MudTextField @bind-Value="_testPostal" Label="Postal Code" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="TestFsa">Check Match</MudButton>
+
+                        @if (_testFsaResult != null)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-2" Dense="true">
+                                Match: Priority @_testFsaResult.Priority <br/>
+                                Region: @_testFsaResult.Region.RegionName <br/>
+                                Group: @_testFsaResult.Group.GroupName
+                            </MudAlert>
+                        }
+                        else if (_testPostalChecked)
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mt-2" Dense="true">No Match Found (Hard Fail)</MudAlert>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="FOB Mapping">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudText Typo="Typo.h6">FOB to Shipping Method</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddFobMapping">Add Mapping</MudButton>
+            </MudStack>
+
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTable Items="_fobMappings" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>FOB Token</MudTh>
+                            <MudTh>Method</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.FobToken</MudTd>
+                            <MudTd>@context.ShippingMethod</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-2">Test FOB</MudText>
+                        <MudTextField @bind-Value="_testFob" Label="FOB Token" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="TestFob">Check Match</MudButton>
+
+                        @if (_testFobResult.HasValue)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-2" Dense="true">
+                                Method: @_testFobResult
+                            </MudAlert>
+                        }
+                        else if (_testFobChecked)
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mt-2" Dense="true">No Match Found (Hard Fail)</MudAlert>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private List<ShippingRegion> _regions = new();
+    private List<ShippingGroup> _groups = new();
+    private List<ShippingFsaRule> _fsaRules = new();
+    private List<ShippingFobMapping> _fobMappings = new();
+
+    private int _branchId;
+
+    // Test FSA
+    private string _testPostal = "";
+    private ShippingFsaRule? _testFsaResult;
+    private bool _testPostalChecked = false;
+
+    // Test FOB
+    private string _testFob = "";
+    private ShippingMethod? _testFobResult;
+    private bool _testFobChecked = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (_branchId > 0)
+        {
+            _regions = await ShippingService.GetRegionsAsync(_branchId);
+            _groups = await ShippingService.GetGroupsAsync(_branchId);
+            _fsaRules = await ShippingService.GetFsaRulesAsync(_branchId);
+            _fobMappings = await ShippingService.GetFobMappingsAsync(_branchId);
+        }
+    }
+
+    // --- Dialogs (Simplified for brevity, would be separate components ideally) ---
+    // Using inline logic or simple dialog calls if possible, but sticking to separate files is cleaner.
+    // I'll assume I create simple dialogs for these.
+
+    private async Task AddRegion()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<RegionDialog>("Add Region", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task AddGroup()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<GroupDialog>("Add Group", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task AddFsaRule()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["Regions"] = _regions, ["Groups"] = _groups };
+        var dialog = await DialogService.ShowAsync<FsaRuleDialog>("Add FSA Rule", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task AddFobMapping()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<FobMappingDialog>("Add FOB Mapping", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    // --- Testing Logic ---
+
+    private async Task TestFsa()
+    {
+        _testPostalChecked = true;
+        _testFsaResult = await ShippingService.FindMatchingFsaRuleAsync(_branchId, _testPostal);
+    }
+
+    private async Task TestFob()
+    {
+        _testFobChecked = true;
+        _testFobResult = await ShippingService.GetShippingMethodForFobAsync(_branchId, _testFob);
+    }
+}

@@ -1,0 +1,92 @@
+@page "/configuration/shifts"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IShiftService ShiftService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Shift Templates</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Add Shift</MudButton>
+    </MudStack>
+
+    <MudTable Items="_shifts" Hover="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Time</MudTh>
+            <MudTh>Duration</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.ShiftCode</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Time">
+                @context.StartLocalTime.ToString("HH:mm") - @context.EndLocalTime.ToString("HH:mm")
+                @if (context.IsOvernight)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="ml-2">Overnight</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Duration">
+                @{
+                    var start = context.StartLocalTime.ToTimeSpan();
+                    var end = context.EndLocalTime.ToTimeSpan();
+                    if (context.IsOvernight) end = end.Add(TimeSpan.FromDays(1));
+                    var duration = (end - start).TotalHours;
+                }
+                @duration.ToString("0.##") hrs
+            </MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<ShiftTemplate> _shifts = new();
+    private bool _loading = true;
+    private int _branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _shifts = await ShiftService.GetShiftsAsync(_branchId);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<ShiftDialog>("Add Shift", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(ShiftTemplate shift)
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["Shift"] = shift };
+        var dialog = await DialogService.ShowAsync<ShiftDialog>("Edit Shift", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

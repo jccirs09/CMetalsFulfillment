@@ -1,0 +1,53 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Data.Enums
+@using CMetalsFulfillment.Services
+@inject IShippingConfigurationService ShippingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.FobToken" Label="FOB Token (ERP)" Required="true" MaxLength="100" />
+            <MudSelect @bind-Value="_model.ShippingMethod" Label="Method" Required="true">
+                <MudSelectItem Value="ShippingMethod.Delivery">Delivery</MudSelectItem>
+                <MudSelectItem Value="ShippingMethod.CustomerPickup">Customer Pickup</MudSelectItem>
+                <MudSelectItem Value="ShippingMethod.Transfer">Transfer</MudSelectItem>
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+
+    private ShippingFobMapping _model = new();
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        _model.BranchId = BranchId;
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            await ShippingService.CreateFobMappingAsync(_model);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

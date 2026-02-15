@@ -1,0 +1,77 @@
+@page "/configuration/machines"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Data.Enums
+@using CMetalsFulfillment.Services
+@inject IMachineService MachineService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Machines</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Add Machine</MudButton>
+    </MudStack>
+
+    <MudTable Items="_machines" Hover="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.MachineCode</MudTd>
+            <MudTd DataLabel="Name">@context.MachineName</MudTd>
+            <MudTd DataLabel="Type">@context.MachineType</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))">Edit</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Machine> _machines = new();
+    private bool _loading = true;
+    private int _branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _machines = await MachineService.GetMachinesAsync(_branchId);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<MachineDialog>("Add Machine", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task OpenEditDialog(Machine machine)
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId, ["Machine"] = machine };
+        var dialog = await DialogService.ShowAsync<MachineDialog>("Edit Machine", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

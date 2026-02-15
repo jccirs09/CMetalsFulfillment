@@ -1,0 +1,160 @@
+@page "/configuration"
+@using CMetalsFulfillment.Services
+@inject ISetupStatusService SetupService
+@inject IBranchContext BranchContext
+@inject NavigationManager NavManager
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" Class="mb-4">Configuration Dashboard</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_branchId == 0)
+    {
+        <MudAlert Severity="Severity.Warning">Please select a branch to view configuration.</MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/machines")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Machines</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.PrecisionManufacturing" Size="Size.Large" Color="Color.Primary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>Manage Machines and Operators</MudText>
+                        <MudChip T="string" Color="@(GetGateStatus("Machine") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                            @(GetGateStatus("Machine") ? "Active" : "Required")
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/stations")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Pack Stations</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.MoveToInbox" Size="Size.Large" Color="Color.Secondary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>Manage Packing Stations</MudText>
+                        <MudChip T="string" Color="@(GetGateStatus("PickPackStation") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                            @(GetGateStatus("PickPackStation") ? "Active" : "Required")
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/shifts")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Shifts</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Large" Color="Color.Info" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>Manage Shift Templates</MudText>
+                        <MudChip T="string" Color="@(GetGateStatus("ShiftTemplate") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                            @(GetGateStatus("ShiftTemplate") ? "Active" : "Required")
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/trucks")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Trucks</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Large" Color="Color.Warning" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>Manage Delivery Trucks</MudText>
+                        <MudChip T="string" Color="@(GetGateStatus("Truck") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                            @(GetGateStatus("Truck") ? "Active" : "Required")
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/shipping")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Shipping Rules</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.Map" Size="Size.Large" Color="Color.Success" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>FSA Rules & FOB Mappings</MudText>
+                        <MudStack Row="true" Spacing="1">
+                            <MudChip T="string" Color="@(GetGateStatus("ShippingFsaRule") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                                FSA
+                            </MudChip>
+                            <MudChip T="string" Color="@(GetGateStatus("ShippingFobMapping") ? Color.Success : Color.Error)" Size="Size.Small" Class="mt-2">
+                                FOB
+                            </MudChip>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="4" Class="pa-4 cursor-pointer" @onclick='() => NavManager.NavigateTo("/configuration/calendar")'>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Calendar</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Dark" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>Non-Working Days & Overtime</MudText>
+                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Class="mt-2">Optional</MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private SetupStatus _status = new();
+    private bool _loading = true;
+    private int _branchId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        if (_branchId > 0)
+        {
+            _status = await SetupService.GetStatusAsync(_branchId);
+        }
+        _loading = false;
+    }
+
+    private bool GetGateStatus(string key)
+    {
+        return _status.Gates.TryGetValue(key, out var status) && status;
+    }
+}

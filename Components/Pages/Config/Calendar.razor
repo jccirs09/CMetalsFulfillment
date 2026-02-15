@@ -1,0 +1,116 @@
+@page "/configuration/calendar"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject ICalendarService CalendarService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" Class="mb-4">Non-Working Days & Calendar</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudDatePicker PickerVariant="PickerVariant.Static" Date="@_selectedDate" DateChanged="OnDateChanged" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6">Actions</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2" OnClick="OpenAddDayDialog">Add Non-Working Day</MudButton>
+
+                <MudDivider Class="my-4" />
+
+                <MudText Typo="Typo.subtitle1">Selected Date: @_selectedDate?.ToShortDateString()</MudText>
+                @if (_selectedDate.HasValue)
+                {
+                    @if (_isOvertimeEnabled)
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">Overtime Enabled</MudAlert>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" Class="mt-2"
+                                   Disabled="@(!_canApproveOvertime)" OnClick="EnableOvertime">
+                            Enable Overtime Override
+                        </MudButton>
+                        @if (!_canApproveOvertime)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error">Supervisor approval required.</MudText>
+                        }
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private DateTime? _selectedDate = DateTime.Today;
+    private bool _isOvertimeEnabled = false;
+    private bool _canApproveOvertime = false;
+    private int _branchId;
+    private string _userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            _canApproveOvertime = user.IsInRole("Supervisor") || user.IsInRole("BranchAdmin") || user.IsInRole("SystemAdmin");
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (_branchId > 0 && _selectedDate.HasValue)
+        {
+            var date = DateOnly.FromDateTime(_selectedDate.Value);
+            _isOvertimeEnabled = await CalendarService.IsOvertimeEnabledAsync(_branchId, date);
+        }
+    }
+
+    private async Task OnDateChanged(DateTime? date)
+    {
+        _selectedDate = date;
+        await LoadData();
+    }
+
+    private async Task OpenAddDayDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<NonWorkingDayDialog>("Add Non-Working Day", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task EnableOvertime()
+    {
+        if (!_selectedDate.HasValue) return;
+
+        var parameters = new DialogParameters { ["Date"] = DateOnly.FromDateTime(_selectedDate.Value) };
+        var dialog = await DialogService.ShowAsync<OvertimeOverrideDialog>("Enable Overtime", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var reason = result.Data as string;
+            try
+            {
+                await CalendarService.AddOverrideAsync(_branchId, DateOnly.FromDateTime(_selectedDate.Value), reason!, _userId);
+                await LoadData();
+                Snackbar.Add("Overtime enabled.", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

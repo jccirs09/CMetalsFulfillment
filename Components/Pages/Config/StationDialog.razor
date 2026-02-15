@@ -1,0 +1,76 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IStationService StationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.StationCode" Label="Station Code" Required="true" MaxLength="20" Disabled="@(_isEdit)" />
+            <MudTextField @bind-Value="_model.StationName" Label="Station Name" Required="true" MaxLength="100" />
+            <MudSwitch @bind-Value="_model.IsActive" Label="Active" Color="Color.Primary" />
+            <MudTextField @bind-Value="_model.Notes" Label="Notes" Lines="3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public PickPackStation? Station { get; set; }
+
+    private PickPackStation _model = new();
+    private bool _isEdit;
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Station != null)
+        {
+            _model = new PickPackStation
+            {
+                Id = Station.Id,
+                BranchId = Station.BranchId,
+                StationCode = Station.StationCode,
+                StationName = Station.StationName,
+                IsActive = Station.IsActive,
+                Notes = Station.Notes
+            };
+            _isEdit = true;
+        }
+        else
+        {
+            _model.BranchId = BranchId;
+            _model.IsActive = true;
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            if (_isEdit)
+            {
+                await StationService.UpdateStationAsync(_model);
+            }
+            else
+            {
+                await StationService.CreateStationAsync(_model);
+            }
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

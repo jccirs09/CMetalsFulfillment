@@ -1,0 +1,77 @@
+@page "/inventory/items"
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IInventoryService InventoryService
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Item Master</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search SKU or Description" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" OnTextChanged="OnSearch" Immediate="true"></MudTextField>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="OpenImportDialog">Import Items</MudButton>
+    </MudStack>
+
+    <MudTable Items="_items" Hover="true" Loading="_loading" Dense="true" Striped="true">
+        <HeaderContent>
+            <MudTh>SKU</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>UOM</MudTh>
+            <MudTh>Weight/Unit</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="SKU">@context.Sku</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="UOM">@context.Uom</MudTd>
+            <MudTd DataLabel="Weight">@context.WeightPerUnit.ToString("N2")</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<ItemMaster> _items = new();
+    private bool _loading = true;
+    private int _branchId;
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = await BranchContext.GetBranchIdAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (_branchId > 0)
+        {
+            _items = await InventoryService.GetItemsAsync(_branchId, _searchString);
+        }
+        _loading = false;
+    }
+
+    private async Task OnSearch(string text)
+    {
+        _searchString = text;
+        await LoadData();
+    }
+
+    private async Task OpenImportDialog()
+    {
+        var parameters = new DialogParameters { ["BranchId"] = _branchId };
+        var dialog = await DialogService.ShowAsync<ImportItemsDialog>("Import Items", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadData();
+    }
+}

@@ -1,0 +1,64 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IShippingConfigurationService ShippingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudNumericField @bind-Value="_model.Priority" Label="Priority (Lower Wins)" Min="1" Required="true" />
+            <MudTextField @bind-Value="_model.FsaPrefix" Label="FSA Prefix (e.g. V4G)" Required="true" MaxLength="3" />
+
+            <MudSelect @bind-Value="_model.RegionId" Label="Region" Required="true">
+                @foreach (var r in Regions)
+                {
+                    <MudSelectItem Value="r.Id">@r.RegionName</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect @bind-Value="_model.GroupId" Label="Group" Required="true">
+                @foreach (var g in Groups)
+                {
+                    <MudSelectItem Value="g.Id">@g.GroupName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public List<ShippingRegion> Regions { get; set; } = new();
+    [Parameter] public List<ShippingGroup> Groups { get; set; } = new();
+
+    private ShippingFsaRule _model = new();
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        _model.BranchId = BranchId;
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            await ShippingService.CreateFsaRuleAsync(_model);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

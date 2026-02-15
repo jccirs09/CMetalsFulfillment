@@ -1,0 +1,74 @@
+@using CMetalsFulfillment.Services
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">Upload an Excel file (.xlsx) with columns: Sku, Description, Uom, WeightPerUnit.</MudText>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Select File
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        @if (_file != null)
+        {
+            <MudText Class="mt-2">Selected: @_file.Name</MudText>
+        }
+
+        @if (_isUploading)
+        {
+            <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mt-2" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ProcessImport" Disabled="@(_file == null || _isUploading)">Import</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+
+    private IBrowserFile? _file;
+    private bool _isUploading;
+
+    private void UploadFiles(IBrowserFile file)
+    {
+        _file = file;
+    }
+
+    private async Task ProcessImport()
+    {
+        if (_file == null) return;
+
+        _isUploading = true;
+        try
+        {
+            // Max size 5MB
+            using var stream = _file.OpenReadStream(5 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            await InventoryService.ImportItemsAsync(BranchId, memoryStream);
+
+            Snackbar.Add("Items imported successfully.", Severity.Success);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Import failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

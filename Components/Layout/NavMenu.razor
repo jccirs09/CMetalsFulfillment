@@ -1,0 +1,38 @@
+@using CMetalsFulfillment.Services
+@inject ISetupStatusService SetupService
+@inject IBranchContext BranchContext
+
+<MudNavMenu>
+    <MudText Typo="Typo.subtitle2" Color="Color.Inherit" Class="ml-4 my-2">Setup</MudText>
+    <MudNavLink Href="/setup" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Checklist</MudNavLink>
+    <MudNavLink Href="/configuration" Icon="@Icons.Material.Filled.Settings">Configuration</MudNavLink>
+
+    <MudText Typo="Typo.subtitle2" Color="Color.Inherit" Class="ml-4 my-2">Admin</MudText>
+    <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.People">Users & Roles</MudNavLink>
+
+    <MudText Typo="Typo.subtitle2" Color="Color.Inherit" Class="ml-4 my-2">Operations</MudText>
+    @if (_isSetupComplete)
+    {
+        <MudNavLink Href="/inventory" Icon="@Icons.Material.Filled.Inventory2">Inventory</MudNavLink>
+        <MudNavLink Href="/logistics" Icon="@Icons.Material.Filled.LocalShipping">Logistics</MudNavLink>
+    }
+    else
+    {
+        <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Lock">Inventory (Locked)</MudNavLink>
+        <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Lock">Logistics (Locked)</MudNavLink>
+    }
+</MudNavMenu>
+
+@code {
+    private bool _isSetupComplete = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var branchId = await BranchContext.GetBranchIdAsync();
+        if (branchId > 0)
+        {
+            var status = await SetupService.GetStatusAsync(branchId);
+            _isSetupComplete = status.IsComplete;
+        }
+    }
+}

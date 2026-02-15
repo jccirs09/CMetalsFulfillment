@@ -1,0 +1,51 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject ICalendarService CalendarService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudDatePicker @bind-Date="_date" Label="Date" Required="true" />
+            <MudTextField @bind-Value="_model.Reason" Label="Reason" Required="true" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+
+    private NonWorkingDay _model = new();
+    private DateTime? _date;
+    private MudForm _form = default!;
+
+    protected override void OnInitialized()
+    {
+        _model.BranchId = BranchId;
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_date.HasValue) _model.DateLocal = DateOnly.FromDateTime(_date.Value);
+
+        try
+        {
+            await CalendarService.AddNonWorkingDayAsync(_model);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

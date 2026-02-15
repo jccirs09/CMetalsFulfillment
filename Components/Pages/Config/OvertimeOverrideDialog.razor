@@ -1,0 +1,32 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Enable Overtime for @Date.ToShortDateString()</MudText>
+        <MudTextField @bind-Value="_reason" Label="Reason for Overtime" Required="true" Lines="3" />
+        <MudAlert Severity="Severity.Warning" Class="mt-2">This action will be audited.</MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Warning" OnClick="Submit">Enable</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DateOnly Date { get; set; }
+
+    private string _reason = "";
+
+    private void Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            Snackbar.Add("Reason is required.", Severity.Error);
+            return;
+        }
+        if (MudDialog != null) MudDialog.Close(DialogResult.Ok(_reason));
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}
