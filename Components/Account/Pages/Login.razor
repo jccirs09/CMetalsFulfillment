@@ -64,6 +64,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Ensure Input is not null for EditForm
+        if (Input is null)
+        {
+            Input = new();
+        }
+
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process
@@ -74,10 +80,6 @@
     public async Task LoginUser()
     {
         // This method executes for valid form submission
-        // But in Identity, the post request is handled by the framework endpoint mapping usually.
-        // If we want to handle it manually here, we would need SignInManager.
-        // However, Blazor Server with Identity usually relies on the form POSTing to the endpoint.
-        // The standard template has no code in LoginUser usually.
         await Task.CompletedTask;
     }
 
