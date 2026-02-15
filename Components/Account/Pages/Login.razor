@@ -1,4 +1,5 @@
 @page "/Account/Login"
+@layout CMetalsFulfillment.Components.Layout.EmptyLayout
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
@@ -23,7 +24,7 @@
                 </CardHeaderContent>
             </MudCardHeader>
             <MudCardContent>
-                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" data-enhance="false">
                     <DataAnnotationsValidator />
                     <MudStack Spacing="2">
                         <MudTextField @bind-Value="Input.Email"
@@ -63,7 +64,7 @@
     private string? errorMessage;
 
     [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private HttpContext? HttpContext { get; set; }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -78,8 +79,9 @@
             Input = new();
         }
 
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        if (HttpContext is not null && HttpMethods.IsGet(HttpContext.Request.Method))
         {
+            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }

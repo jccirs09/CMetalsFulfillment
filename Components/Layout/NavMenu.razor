@@ -1,0 +1,9 @@
+@using MudBlazor
+
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    <MudNavLink Href="Admin/Users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">Users</MudNavLink>
+    <AuthorizeView Roles="SystemAdmin">
+        <MudNavLink Href="setup" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Setup</MudNavLink>
+    </AuthorizeView>
+</MudNavMenu>
