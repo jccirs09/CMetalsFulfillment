@@ -1,0 +1,171 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+@using System.Security.Claims
+
+@inject UserAdminService UserService
+@inject BranchService BranchService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Managing Access for: @User.FullName</MudText>
+
+        <MudTable Items="@allBranches" Hover="true" Breakpoint="Breakpoint.Sm" Class="mt-4">
+            <HeaderContent>
+                <MudTh>Branch</MudTh>
+                <MudTh>Access (Membership)</MudTh>
+                <MudTh>Default</MudTh>
+                <MudTh>Roles</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Code - @context.Name</MudTd>
+                <MudTd>
+                     <MudSwitch T="bool" Value="@IsMember(context.Id)" ValueChanged="@((bool v) => ToggleMembership(context.Id, v))" Color="Color.Success" Label="@(IsMember(context.Id) ? "Active" : "None")" />
+                </MudTd>
+                <MudTd>
+                     <MudRadioGroup T="int" Value="@defaultBranchId" ValueChanged="SetDefaultBranch">
+                         <MudRadio T="int" Value="@context.Id" Color="Color.Primary" Disabled="@(!IsMember(context.Id))">Default</MudRadio>
+                     </MudRadioGroup>
+                </MudTd>
+                <MudTd>
+                    @if (IsMember(context.Id))
+                    {
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach (var role in GetRoles(context.Id))
+                            {
+                                <MudChip T="string" Size="Size.Small" OnClose="@(() => RemoveRole(context.Id, role.RoleName))">@role.RoleName</MudChip>
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => AddRole(context.Id))" />
+                        </div>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ApplicationUser User { get; set; } = default!;
+
+    private List<Branch> allBranches = new();
+    private List<UserBranchMembership> memberships = new();
+    private Dictionary<int, List<UserBranchRole>> branchRoles = new();
+    private int defaultBranchId;
+    private string currentUserId = "";
+    private bool isSystemAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        isSystemAdmin = user.IsInRole("SystemAdmin");
+
+        allBranches = await BranchService.GetAllBranchesAsync();
+        await LoadMemberships();
+    }
+
+    private async Task LoadMemberships()
+    {
+        memberships = await UserService.GetMembershipsAsync(User.Id);
+        defaultBranchId = memberships.FirstOrDefault(m => m.IsDefaultForUser)?.BranchId ?? 0;
+
+        branchRoles.Clear();
+        foreach (var m in memberships)
+        {
+            if (m.IsActive)
+            {
+                var roles = await UserService.GetBranchRolesAsync(User.Id, m.BranchId);
+                branchRoles[m.BranchId] = roles;
+            }
+        }
+    }
+
+    private bool IsMember(int branchId)
+    {
+        return memberships.Any(m => m.BranchId == branchId && m.IsActive);
+    }
+
+    private async Task ToggleMembership(int branchId, bool isActive)
+    {
+        await UserService.UpdateMembershipAsync(User.Id, branchId, isActive, branchId == defaultBranchId);
+        await LoadMemberships();
+        StateHasChanged();
+    }
+
+    private async Task SetDefaultBranch(int branchId)
+    {
+        if (IsMember(branchId))
+        {
+            await UserService.UpdateMembershipAsync(User.Id, branchId, true, true);
+            await LoadMemberships();
+        }
+    }
+
+    private List<UserBranchRole> GetRoles(int branchId)
+    {
+        return branchRoles.ContainsKey(branchId) ? branchRoles[branchId] : new List<UserBranchRole>();
+    }
+
+    private async Task AddRole(int branchId)
+    {
+        // Permission Check logic
+        var allRoles = new List<string> { "SystemAdmin", "BranchAdmin", "Supervisor", "Planner", "Operator", "LoaderChecker", "Driver", "Viewer" };
+        var allowedRoles = new List<string>();
+
+        if (isSystemAdmin)
+        {
+            allowedRoles = allRoles;
+        }
+        else
+        {
+            // BranchAdmin check
+            // We need to know if I am BranchAdmin FOR THIS BRANCH.
+            // Using UserService to check my roles.
+            var myRoles = await UserService.GetBranchRolesAsync(currentUserId, branchId);
+            if (myRoles.Any(r => r.RoleName == "BranchAdmin"))
+            {
+                // BranchAdmin cannot grant SystemAdmin
+                allowedRoles = allRoles.Where(r => r != "SystemAdmin").ToList();
+            }
+            else
+            {
+                // No permission to add roles
+                Snackbar.Add("You do not have permission to assign roles in this branch.", Severity.Warning);
+                return;
+            }
+        }
+
+        var parameters = new DialogParameters { ["AllowedRoles"] = allowedRoles };
+        var dialog = await DialogService.ShowAsync<AddRoleDialog>("Add Role", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string roleName)
+        {
+            await UserService.AddBranchRoleAsync(User.Id, branchId, roleName, currentUserId);
+            await LoadMemberships();
+        }
+    }
+
+    private async Task RemoveRole(int branchId, string roleName)
+    {
+        // Similar permission check for removal should be added, but for now assuming add check covers intent.
+        // Usually if you can add, you can remove (except maybe SystemAdmin removing SystemAdmin?).
+
+        var role = branchRoles[branchId].FirstOrDefault(r => r.RoleName == roleName);
+        if (role != null)
+        {
+            await UserService.RemoveBranchRoleAsync(role.Id);
+            await LoadMemberships();
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}

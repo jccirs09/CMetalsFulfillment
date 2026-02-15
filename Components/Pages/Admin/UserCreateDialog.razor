@@ -1,0 +1,78 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+
+@inject UserAdminService UserService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField @bind-Value="model.Email" Label="Email" Required="true" InputType="InputType.Email" />
+            <MudTextField @bind-Value="model.UserName" Label="User Name" Required="true" />
+            <MudTextField @bind-Value="model.FullName" Label="Full Name" Required="true" />
+            <MudTextField @bind-Value="model.TempPassword" Label="Temporary Password" Required="true" InputType="InputType.Password" />
+            <MudCheckBox @bind-Value="model.IsActive" Label="Active" Color="Color.Primary" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm form = default!;
+    private bool success;
+    private UserCreateDto model = new() { IsActive = true };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            var user = new ApplicationUser
+            {
+                UserName = model.UserName,
+                Email = model.Email,
+                FullName = model.FullName,
+                IsActive = model.IsActive,
+                CreatedAtUtc = DateTime.UtcNow,
+                EmailConfirmed = true // Auto confirm for admin created users
+            };
+
+            var result = await UserService.CreateUserAsync(user, model.TempPassword);
+            if (result.Succeeded)
+            {
+                Snackbar.Add("User created successfully.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Snackbar.Add(error.Description, Severity.Error);
+                }
+            }
+        }
+    }
+
+    public class UserCreateDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+        [Required]
+        public string UserName { get; set; } = "";
+        [Required]
+        public string FullName { get; set; } = "";
+        [Required]
+        public string TempPassword { get; set; } = "";
+        public bool IsActive { get; set; }
+    }
+}

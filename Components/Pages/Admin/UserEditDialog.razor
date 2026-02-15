@@ -1,0 +1,74 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+
+@inject UserAdminService UserService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField @bind-Value="model.Email" Label="Email" Required="true" InputType="InputType.Email" ReadOnly="true" HelperText="Email cannot be changed here." />
+            <MudTextField @bind-Value="model.UserName" Label="User Name" Required="true" ReadOnly="true" />
+            <MudTextField @bind-Value="model.FullName" Label="Full Name" Required="true" />
+            <MudCheckBox @bind-Value="model.IsActive" Label="Active" Color="Color.Primary" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ApplicationUser User { get; set; } = default!;
+
+    private MudForm form = default!;
+    private bool success;
+    private UserEditDto model = new();
+
+    protected override void OnInitialized()
+    {
+        model.Email = User.Email ?? "";
+        model.UserName = User.UserName ?? "";
+        model.FullName = User.FullName;
+        model.IsActive = User.IsActive;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            User.FullName = model.FullName;
+            User.IsActive = model.IsActive;
+
+            var result = await UserService.UpdateUserAsync(User);
+            if (result.Succeeded)
+            {
+                Snackbar.Add("User updated successfully.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Snackbar.Add(error.Description, Severity.Error);
+                }
+            }
+        }
+    }
+
+    public class UserEditDto
+    {
+        public string Email { get; set; } = "";
+        public string UserName { get; set; } = "";
+        [Required]
+        public string FullName { get; set; } = "";
+        public bool IsActive { get; set; }
+    }
+}

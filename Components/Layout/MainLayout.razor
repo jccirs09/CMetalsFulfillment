@@ -1,4 +1,12 @@
 @inherits LayoutComponentBase
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data
+@using MudBlazor
+
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -12,23 +20,29 @@
 
         <AuthorizeView>
             <Authorized>
-                <!-- Active Branch Badge (Placeholder) -->
-                <MudChip T="string" Color="Color.Primary" Class="mr-4">
-                    <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-1"/>
-                    Active Branch: (Select)
-                </MudChip>
+                @if (activeBranch != null)
+                {
+                    <MudChip T="string" Color="Color.Primary" Class="mr-4" OnClick="OpenBranchPicker">
+                        <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-1"/>
+                        @activeBranch.Code - @activeBranch.Name
+                    </MudChip>
 
-                 <!-- Local Time (Placeholder) -->
-                <MudText Typo="Typo.body2" Class="mr-4">
-                    @DateTime.UtcNow.ToString("HH:mm") UTC
-                </MudText>
+                     <MudText Typo="Typo.body2" Class="mr-4">
+                        @DateTime.UtcNow.ToString("HH:mm") UTC
+                    </MudText>
+                }
+                else
+                {
+                     <MudChip T="string" Color="Color.Error" Class="mr-4" OnClick="OpenBranchPicker">
+                        Select Branch
+                    </MudChip>
+                }
 
-                <!-- User FullName -->
                 <MudText Typo="Typo.body1" Class="mr-4">
                     @context.User.Identity?.Name
                 </MudText>
 
-                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick="@(() => { /* TODO: Open Branch Picker */ })">
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick="OpenBranchPicker">
                     Switch Branch
                 </MudButton>
 
@@ -52,3 +66,24 @@
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private Branch? activeBranch;
+
+    protected override async Task OnInitializedAsync()
+    {
+        activeBranch = await BranchContext.GetBranchAsync();
+    }
+
+    // Listen for location changes to re-evaluate branch if needed (though scoped service usually persists)
+    // However, if we change branch, we force reload so OnInitialized runs again.
+
+    private async Task OpenBranchPicker()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<BranchPickerDialog>("Select Branch", options);
+        var result = await dialog.Result;
+
+        // The dialog itself handles the reload on success, so we don't need to do much here.
+    }
+}
