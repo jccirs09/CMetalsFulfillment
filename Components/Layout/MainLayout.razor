@@ -37,13 +37,27 @@
 
         <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Edge="Edge.End" Class="mr-4" />
 
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="ml-4">
-             <MudStack Spacing="0" Class="mr-2" AlignItems="AlignItems.End">
-                 <MudText Typo="Typo.body2">@_userName</MudText>
-                 <MudText Typo="Typo.caption" Color="Color.Secondary">User Role</MudText>
-            </MudStack>
-            <MudAvatar Color="Color.Primary" Size="Size.Small">@_userInitials</MudAvatar>
-        </MudStack>
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" LockScroll="true">
+            <ActivatorContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="ml-4 cursor-pointer">
+                    <MudStack Spacing="0" Class="mr-2" AlignItems="AlignItems.End">
+                        <MudText Typo="Typo.body2">@_userName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">User Role</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">@_userInitials</MudAvatar>
+                </MudStack>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Href="Account/Manage">Profile</MudMenuItem>
+                <MudMenuItem>
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="/" />
+                        <button type="submit" style="width:100%; text-align:left; background:none; border:none; padding:0; color:inherit; font:inherit;">Logout</button>
+                    </form>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="DrawerVariant.Responsive">

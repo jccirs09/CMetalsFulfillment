@@ -59,7 +59,7 @@ public static class DbSeeder
                 await userManager.AddToRoleAsync(adminUser, "SystemAdmin");
 
                 // Add Membership
-                var dltBranch = await context.Branches.FirstOrDefaultAsync(b => b.Code == "DLT");
+                var dltBranch = await context.Branches.FirstOrDefaultAsync(b => b.Code == "SRY");
                 if (dltBranch != null)
                 {
                     context.UserBranchMemberships.Add(new UserBranchMembership
