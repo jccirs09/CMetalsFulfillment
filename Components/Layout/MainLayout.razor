@@ -8,23 +8,25 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavManager
 
-<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+<MudDialogProvider @rendermode="InteractiveServer" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Dense="true" Fixed="true">
+    <MudAppBar Elevation="1" Dense="true" Fixed="true" Color="Color.Surface">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Class="ml-3">MetalFlow</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.WaterDrop" Color="Color.Primary" Class="ml-3 mr-2" />
+        <MudText Typo="Typo.h6">MetalFlow</MudText>
         <MudSpacer />
 
-        @if (_currentBranch != null)
+        @{ var branch = _currentBranch; }
+        @if (branch != null)
         {
             <MudChip T="string" Icon="@Icons.Material.Filled.LocationCity" Color="Color.Primary" Class="mr-4">
-                @_currentBranch.Code - @_currentBranch.Name
+                @branch.Code - @branch.Name
             </MudChip>
-            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" Size="Size.Small" Class="mr-4" OnClick="OpenBranchPicker">Switch</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="mr-4" OnClick="OpenBranchPicker">Switch</MudButton>
             <MudText Typo="Typo.body2" Class="mr-4">@_timeString</MudText>
         }
         else
@@ -33,12 +35,35 @@
             <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="OpenBranchPicker">Select Branch</MudButton>
         }
 
-        <MudAvatar Color="Color.Secondary" Size="Size.Small">@_userInitials</MudAvatar>
-        <MudText Typo="Typo.body2" Class="ml-2">@_userName</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Edge="Edge.End" Class="mr-4" />
+
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" LockScroll="true">
+            <ActivatorContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="ml-4 cursor-pointer">
+                    <MudStack Spacing="0" Class="mr-2" AlignItems="AlignItems.End">
+                        <MudText Typo="Typo.body2">@_userName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">User Role</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">@_userInitials</MudAvatar>
+                </MudStack>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Href="Account/Manage">Profile</MudMenuItem>
+                <MudMenuItem>
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="/" />
+                        <button type="submit" style="width:100%; text-align:left; background:none; border:none; padding:0; color:inherit; font:inherit;">Logout</button>
+                    </form>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Docked" Elevation="2">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="DrawerVariant.Responsive">
         <NavMenu />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Class="pa-4" Color="Color.Secondary">System Online v1.0.4</MudText>
     </MudDrawer>
 
     <MudMainContent>
@@ -51,7 +76,17 @@
 @code {
     bool _drawerOpen = true;
     bool _isDarkMode = true;
-    MudTheme _theme = new MudTheme();
+    MudTheme _theme = new MudTheme()
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#135bec",
+            Surface = "#1a1a2e",
+            AppbarBackground = "#1a1a2e",
+            Background = "#0f0f1a",
+            DrawerBackground = "#16213e"
+        }
+    };
     Branch? _currentBranch;
     string _timeString = "";
     string _userName = "";
@@ -95,14 +130,15 @@
 
     void UpdateTime()
     {
-        if (_currentBranch != null)
+        var branch = _currentBranch;
+        if (branch != null)
         {
             try
             {
                 TimeZoneInfo tz;
                 try
                 {
-                    tz = TimeZoneInfo.FindSystemTimeZoneById(_currentBranch.TimeZoneId);
+                    tz = TimeZoneInfo.FindSystemTimeZoneById(branch.TimeZoneId);
                 }
                 catch
                 {

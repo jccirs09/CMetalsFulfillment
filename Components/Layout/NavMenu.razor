@@ -1,4 +1,5 @@
 @using CMetalsFulfillment.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ISetupStatusService SetupService
 @inject IBranchContext BranchContext
 
@@ -21,6 +22,27 @@
         <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Lock">Inventory (Locked)</MudNavLink>
         <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Lock">Logistics (Locked)</MudNavLink>
     }
+
+    <MudText Typo="Typo.subtitle2" Color="Color.Inherit" Class="ml-4 my-2">Account</MudText>
+    <AuthorizeView>
+        <Authorized>
+            <MudNavLink Href="Account/Manage" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+            <div class="mud-nav-item mud-ripple">
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="/" />
+                    <button type="submit" class="mud-nav-link mud-nav-link-text" style="width:100%; text-align:left; border:none; background:none; padding: 10px 16px; color: inherit; display: flex; align-items: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-3" Color="Color.Inherit" Size="Size.Medium" />
+                        <span class="mud-typography mud-typography-body1 mud-inherit-text">Logout</span>
+                    </button>
+                </form>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <MudNavLink Href="Account/Login" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
+            <MudNavLink Href="Account/Register" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
 </MudNavMenu>
 
 @code {

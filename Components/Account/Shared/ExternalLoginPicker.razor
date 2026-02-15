@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using CMetalsFulfillment.Data
 
@@ -23,7 +23,10 @@ else
             <p>
                 @foreach (var provider in externalLogins)
                 {
-                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                               UserAttributes="@(new Dictionary<string, object> { { "name", "provider" }, { "value", provider.Name }, { "title", $"Log in using your {provider.DisplayName} account" } })">
+                        @provider.DisplayName
+                    </MudButton>
                 }
             </p>
         </div>
