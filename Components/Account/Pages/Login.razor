@@ -22,30 +22,33 @@
                 </CardHeaderContent>
             </MudCardHeader>
             <MudCardContent>
-                <!-- Use standard form to ensure POST happens for Identity -->
-                <form method="post">
-                    <AntiforgeryToken />
+                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                    <DataAnnotationsValidator />
                     <MudStack Spacing="2">
-                        <!-- Email -->
-                        <MudTextField @bind-Value="Input.Email" Label="Email" Variant="Variant.Outlined" Required="true" InputType="InputType.Email" />
-                        <input type="hidden" name="Input.Email" value="@Input.Email" />
+                        <MudTextField @bind-Value="Input.Email"
+                                      For="@(() => Input.Email)"
+                                      UserAttributes="@(new Dictionary<string, object> { { "name", "Input.Email" } })"
+                                      Label="Email" Variant="Variant.Outlined" Required="true" InputType="InputType.Email" />
 
-                        <!-- Password -->
-                        <MudTextField @bind-Value="Input.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
-                        <input type="hidden" name="Input.Password" value="@Input.Password" />
+                        <MudTextField @bind-Value="Input.Password"
+                                      For="@(() => Input.Password)"
+                                      UserAttributes="@(new Dictionary<string, object> { { "name", "Input.Password" } })"
+                                      Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
 
-                        <!-- Remember Me -->
-                        <MudCheckBox @bind-Value="Input.RememberMe" Label="Remember me" Color="Color.Primary" />
-                        <input type="hidden" name="Input.RememberMe" value="@Input.RememberMe" />
+                        <MudCheckBox @bind-Value="Input.RememberMe"
+                                     UserAttributes="@(new Dictionary<string, object> { { "name", "Input.RememberMe" }, { "value", "true" } })"
+                                     Label="Remember me" Color="Color.Primary" />
 
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-4">Log in</MudButton>
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-4">
+                            Log in
+                        </MudButton>
                     </MudStack>
 
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <MudText Color="Color.Error" Class="mt-2">@errorMessage</MudText>
                     }
-                </form>
+                </EditForm>
             </MudCardContent>
             <MudCardActions Class="d-flex justify-center flex-column pb-4">
                  <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot your password?</MudLink>
@@ -69,11 +72,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (Input is null)
-        {
-            Input = new();
-        }
-
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process
@@ -83,7 +81,23 @@
 
     public async Task LoginUser()
     {
-        await Task.CompletedTask;
+        // Use SignInManager directly as requested
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
     }
 
     private sealed class InputModel
