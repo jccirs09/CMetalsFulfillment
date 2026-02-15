@@ -1,0 +1,103 @@
+@page "/Admin/Users"
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+
+@inject UserAdminService UserService
+@inject BranchService BranchService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IRoleResolver RoleResolver
+
+<PageTitle>User Administration</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">User Administration</MudText>
+
+<MudTable Items="@users" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info" Filter="new Func<ApplicationUser,bool>(FilterFunc1)">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Users</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString1" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="ml-4" OnClick="OpenCreateDialog">Create User</MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Email</MudTh>
+        <MudTh>UserName</MudTh>
+        <MudTh>Full Name</MudTh>
+        <MudTh>Active</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="UserName">@context.UserName</MudTd>
+        <MudTd DataLabel="Full Name">@context.FullName</MudTd>
+        <MudTd DataLabel="Active">
+            <MudCheckBox T="bool" Value="@context.IsActive" ReadOnly="true" Color="Color.Success" />
+        </MudTd>
+        <MudTd DataLabel="Actions">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.GroupAdd" Color="Color.Secondary" OnClick="@(() => OpenMembershipDialog(context))" />
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<ApplicationUser> users = new();
+    private bool isLoading = true;
+    private string searchString1 = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoading = true;
+        users = await UserService.GetUsersAsync();
+        isLoading = false;
+    }
+
+    private bool FilterFunc1(ApplicationUser user) => FilterFunc(user, searchString1);
+
+    private bool FilterFunc(ApplicationUser user, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (user.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.UserName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.FullName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserCreateDialog>("Create User", options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task OpenEditDialog(ApplicationUser user)
+    {
+        var parameters = new DialogParameters<UserEditDialog> { { x => x.User, user } };
+        var dialog = await DialogService.ShowAsync<UserEditDialog>("Edit User", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task OpenMembershipDialog(ApplicationUser user)
+    {
+        var parameters = new DialogParameters<UserMembershipDialog> { { x => x.User, user } };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserMembershipDialog>("Manage Memberships & Roles", parameters, options);
+    }
+}

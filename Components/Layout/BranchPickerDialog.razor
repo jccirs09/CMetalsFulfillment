@@ -1,0 +1,108 @@
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+
+@inject BranchService BranchService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">Select a branch to work in.</MudText>
+
+        @if (isLoading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (myBranches == null || !myBranches.Any())
+        {
+             <MudAlert Severity="Severity.Warning">You do not have any branch memberships.</MudAlert>
+        }
+        else
+        {
+            <MudList T="Branch" SelectionMode="SelectionMode.SingleSelection" SelectedValueChanged="OnBranchSelected" Class="branch-list">
+                @foreach (var branch in myBranches)
+                {
+                    <MudListItem T="Branch" Value="@branch">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h6">@branch.Code - @branch.Name</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@branch.City, @branch.Province</MudText>
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+
+            <MudCheckBox @bind-Value="setAsDefault" Label="Set as my default branch" Color="Color.Primary" Class="mt-4" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ConfirmBranch" Disabled="@(selectedBranch == null)">Switch</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .branch-list .mud-list-item {
+        cursor: pointer;
+    }
+    .branch-list .mud-selected-item {
+        background-color: var(--mud-palette-action-selected);
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<Branch> myBranches = new();
+    private Branch? selectedBranch;
+    private bool setAsDefault;
+    private bool isLoading = true;
+    private string userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            if (!string.IsNullOrEmpty(userId))
+            {
+                myBranches = await BranchService.GetMyBranchesAsync(userId);
+            }
+        }
+        isLoading = false;
+    }
+
+    private void OnBranchSelected(object selectedValue)
+    {
+         if (selectedValue is Branch b)
+        {
+            selectedBranch = b;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmBranch()
+    {
+        if (selectedBranch != null)
+        {
+            if (setAsDefault && !string.IsNullOrEmpty(userId))
+            {
+                await BranchService.SetDefaultBranchAsync(userId, selectedBranch.Id);
+            }
+
+            // Set cookie via JS and reload
+            await JSRuntime.InvokeVoidAsync("eval", $"document.cookie = 'mf.branch={selectedBranch.Id}; path=/; max-age=86400; samesite=strict'");
+
+            // Force reload to apply branch context
+            Nav.NavigateTo(Nav.Uri, forceLoad: true);
+            MudDialog.Close(DialogResult.Ok(selectedBranch.Id));
+        }
+    }
+}
