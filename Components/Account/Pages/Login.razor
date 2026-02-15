@@ -22,16 +22,21 @@
                 </CardHeaderContent>
             </MudCardHeader>
             <MudCardContent>
-                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                    <DataAnnotationsValidator />
+                <!-- Use standard form to ensure POST happens for Identity -->
+                <form method="post">
+                    <AntiforgeryToken />
                     <MudStack Spacing="2">
-                        <MudTextField @bind-Value="Input.Email" Label="Email" Variant="Variant.Outlined" Required="true"
-                                      For="@(() => Input.Email)" OnlyValidateIfDirty="true" />
+                        <!-- Email -->
+                        <MudTextField @bind-Value="Input.Email" Label="Email" Variant="Variant.Outlined" Required="true" InputType="InputType.Email" />
+                        <input type="hidden" name="Input.Email" value="@Input.Email" />
 
-                        <MudTextField @bind-Value="Input.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
-                                      For="@(() => Input.Password)" OnlyValidateIfDirty="true" />
+                        <!-- Password -->
+                        <MudTextField @bind-Value="Input.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+                        <input type="hidden" name="Input.Password" value="@Input.Password" />
 
+                        <!-- Remember Me -->
                         <MudCheckBox @bind-Value="Input.RememberMe" Label="Remember me" Color="Color.Primary" />
+                        <input type="hidden" name="Input.RememberMe" value="@Input.RememberMe" />
 
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-4">Log in</MudButton>
                     </MudStack>
@@ -40,7 +45,7 @@
                     {
                         <MudText Color="Color.Error" Class="mt-2">@errorMessage</MudText>
                     }
-                </EditForm>
+                </form>
             </MudCardContent>
             <MudCardActions Class="d-flex justify-center flex-column pb-4">
                  <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot your password?</MudLink>
@@ -64,7 +69,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Ensure Input is not null for EditForm
         if (Input is null)
         {
             Input = new();
@@ -79,7 +83,6 @@
 
     public async Task LoginUser()
     {
-        // This method executes for valid form submission
         await Task.CompletedTask;
     }
 
