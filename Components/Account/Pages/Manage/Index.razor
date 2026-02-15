@@ -1,39 +1,132 @@
-﻿@page "/Account/Manage"
+@page "/Account/Manage"
+@layout CMetalsFulfillment.Components.Layout.MainLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Data.Entities
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>Account Settings</PageTitle>
 
-<h3>Profile</h3>
-<StatusMessage />
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="mb-2">Account Settings</MudText>
+    <MudText Typo="Typo.body2" Class="mb-6" Color="Color.Secondary">Manage your profile details, security preferences, and branch memberships.</MudText>
 
-<div class="row">
-    <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
-    </div>
-</div>
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="4" Class="pa-4 text-center">
+                <MudCardContent>
+                    <div class="d-flex justify-center mb-4 relative">
+                        <MudAvatar Style="height: 100px; width: 100px; font-size: 2rem;" Color="Color.Primary">@(_user?.UserName?.Substring(0, 1).ToUpper() ?? "U")</MudAvatar>
+                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" Class="absolute" Style="bottom: 0; right: 35%; background-color: var(--mud-palette-surface);" />
+                    </div>
+                    <MudText Typo="Typo.h6">@_user?.FullName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@_user?.Email</MudText>
+
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mb-4">SYSTEM ADMIN</MudChip>
+
+                    <MudDivider Class="my-4" />
+
+                    <div class="d-flex justify-space-between px-4">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Member Since</MudText>
+                        <MudText Typo="Typo.body2">@(_user?.CreatedAtUtc.ToString("MMM dd, yyyy") ?? "-")</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between px-4 mt-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Last Login</MudText>
+                        <MudText Typo="Typo.body2">@(_user?.LastLoginAtUtc?.ToString("MMM dd, yyyy") ?? "Never")</MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Elevation="4" Class="mt-4 pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6" Color="Color.Info">
+                            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-2" /> Security
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Protect your account with a strong password.</MudText>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Href="Account/Manage/ChangePassword">Change Password</MudButton>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Elevation="4" Class="mt-4 pa-4" Style="background-color: #0f1828;">
+                <MudCardContent>
+                    <MudText Typo="Typo.caption" Color="Color.Info" Class="mb-2">ACTIVITY</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Inherit">124 Actions</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Performed across all branches this month.</MudText>
+                </MudCardContent>
+            </MudCard>
+
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudCard Elevation="4" Class="pa-4 mb-4">
+                 <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Personal Information</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Update your personal details here.</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post" FormName="profile">
+                        <DataAnnotationsValidator />
+                        <StatusMessage />
+
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <div class="form-group">
+                                    <label class="mud-input-label">Full Name</label>
+                                    <InputText @bind-Value="Input.FullName" class="form-control" />
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <div class="form-group">
+                                    <label class="mud-input-label">Email Address</label>
+                                    <input value="@username" class="form-control" disabled />
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <div class="form-group">
+                                    <label class="mud-input-label">Phone Number (Optional)</label>
+                                    <InputText @bind-Value="Input.PhoneNumber" class="form-control" />
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <div class="form-group">
+                                    <label class="mud-input-label">Timezone</label>
+                                    <select class="form-control">
+                                        <option value="Eastern Time (US & Canada)">Eastern Time (US & Canada)</option>
+                                        <option value="Pacific Time (US & Canada)">Pacific Time (US & Canada)</option>
+                                        <option value="UTC">UTC</option>
+                                    </select>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+
+                        <div class="d-flex justify-end mt-4">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Save Changes</MudButton>
+                        </div>
+                    </EditForm>
+                </MudCardContent>
+            </MudCard>
+
+            @if (_user != null) { <BranchManager UserId="@_user.Id" @rendermode="InteractiveServer" /> }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
 
 @code {
-    private ApplicationUser? user;
+    private ApplicationUser? _user;
     private string? username;
     private string? phoneNumber;
 
@@ -47,43 +140,55 @@
     {
         Input ??= new();
 
-        user = await UserManager.GetUserAsync(HttpContext.User);
-        if (user is null)
+        _user = await UserManager.GetUserAsync(HttpContext.User);
+        if (_user is null)
         {
             RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
             return;
         }
 
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        username = await UserManager.GetUserNameAsync(_user);
+        phoneNumber = await UserManager.GetPhoneNumberAsync(_user);
 
         Input.PhoneNumber ??= phoneNumber;
+        Input.FullName ??= _user.FullName;
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (user is null)
-        {
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
-            return;
-        }
+        if (_user is null) return;
 
-        if (Input.PhoneNumber != phoneNumber)
+        bool changed = false;
+        if (Input.PhoneNumber != _user.PhoneNumber)
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(_user, Input.PhoneNumber);
             if (!setPhoneResult.Succeeded)
             {
                 RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
                 return;
             }
+            changed = true;
         }
 
-        await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        if (Input.FullName != _user.FullName)
+        {
+            _user.FullName = Input.FullName;
+            await UserManager.UpdateAsync(_user);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await SignInManager.RefreshSignInAsync(_user);
+            RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        }
     }
 
     private sealed class InputModel
     {
+        [Display(Name = "Full Name")]
+        public string? FullName { get; set; }
+
         [Phone]
         [Display(Name = "Phone number")]
         public string? PhoneNumber { get; set; }

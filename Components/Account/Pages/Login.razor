@@ -1,4 +1,4 @@
-﻿@page "/Account/Login"
+@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -13,63 +13,49 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex justify-center align-center" Style="height: 80vh;">
+    <MudCard Elevation="4" Class="pa-4" Style="width: 100%; max-width: 400px; background-color: var(--mud-palette-surface);">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <div class="d-flex justify-center mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Large" />
+                </div>
+                <MudText Typo="Typo.h5" Align="Align.Center" GutterBottom="true">MetalFlow Systems</MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">Secure Industrial Access Portal</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
             <StatusMessage Message="@errorMessage" />
             <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
                 <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
+
+                <div class="form-group mb-3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">EMAIL OR USER NAME</MudText>
+                    <InputText @bind-Value="Input.Email" class="form-control" placeholder="operator@metalflow.com" autocomplete="username" />
                     <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
+
+                <div class="form-group mb-3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">PASSWORD</MudText>
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control" placeholder="Password" autocomplete="current-password" />
                     <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
+
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <div class="form-check"><InputCheckbox @bind-Value="Input.RememberMe" id="rememberMe" class="form-check-input" /><label class="form-check-label ms-2" for="rememberMe">Remember me</label></div>
+                    <MudLink Href="Account/ForgotPassword" Typo="Typo.caption">Forgot password?</MudLink>
                 </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <hr />
-                <div class="d-flex flex-column">
-                    <span class="text-secondary mx-auto mt-2">OR</span>
-                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
-                </div>
-                <hr />
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" Class="mb-4">Secure Login</MudButton>
+
+                <div class="d-flex justify-center">
+                     <MudText Typo="Typo.caption" Color="Color.Secondary">Need access credentials? <MudLink Href="#" Typo="Typo.caption" Color="Color.Inherit">Contact SysAdmin</MudLink></MudText>
                 </div>
             </EditForm>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
-</div>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
     private string? errorMessage;
@@ -108,19 +94,15 @@
         SignInResult result;
         if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
         {
-            // When performing passkey sign-in, don't perform form validation.
             result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
         }
         else
         {
-            // If doing a password sign-in, validate the form.
             if (!editContext.Validate())
             {
                 return;
             }
 
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
             result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         }
 

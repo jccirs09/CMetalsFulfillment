@@ -8,10 +8,10 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavManager
 
-<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+<MudDialogProvider @rendermode="InteractiveServer" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
 
 <MudLayout>
     <MudAppBar Elevation="1" Dense="true" Fixed="true" Color="Color.Surface">
