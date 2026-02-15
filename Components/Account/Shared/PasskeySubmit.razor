@@ -1,7 +1,12 @@
-﻿@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Antiforgery
 @inject IServiceProvider Services
 
-<button type="submit" name="__passkeySubmit" @attributes="AdditionalAttributes">@ChildContent</button>
+@{
+    var attributes = new Dictionary<string, object>(AdditionalAttributes ?? new Dictionary<string, object>());
+    attributes["name"] = "__passkeySubmit";
+}
+
+<MudButton ButtonType="ButtonType.Submit" UserAttributes="@attributes" Variant="Variant.Text" Color="Color.Primary" Class="mx-auto">@ChildContent</MudButton>
 <passkey-submit
     operation="@Operation"
     name="@Name"

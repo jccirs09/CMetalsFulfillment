@@ -6,6 +6,7 @@
 @using Microsoft.EntityFrameworkCore
 @using CMetalsFulfillment.Data
 @using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Components.Account.Pages.Manage
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
@@ -84,32 +85,40 @@
 
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <div class="form-group">
-                                    <label class="mud-input-label">Full Name</label>
-                                    <InputText @bind-Value="Input.FullName" class="form-control" />
+                                <div class="mud-input-control mud-input-control-margin-dense mud-input-outlined-with-label mud-input-input-control">
+                                    <div class="mud-input-control-input-container">
+                                        <div class="mud-input mud-input-outlined mud-input-outlined-with-label mud-input-margin-dense mud-typography-subtitle1 mud-shrink">
+                                            <InputText @bind-Value="Input.FullName" class="mud-input-slot mud-input-root mud-input-root-outlined mud-input-root-margin-dense" style="padding: 18.5px 14px;" />
+                                            <div class="mud-input-slot mud-input-root mud-input-root-outlined mud-input-root-margin-dense" style="display:none" tabindex="-1"></div>
+                                            <fieldset class="mud-input-outlined-border">
+                                                <legend>Full Name</legend>
+                                            </fieldset>
+                                        </div>
+                                        <label class="mud-input-label mud-input-label-animated mud-input-label-outlined mud-input-label-margin-dense mud-input-label-inputcontrol">Full Name</label>
+                                    </div>
                                 </div>
+                                <ValidationMessage For="@(() => Input.FullName)" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <div class="form-group">
-                                    <label class="mud-input-label">Email Address</label>
-                                    <input value="@username" class="form-control" disabled />
-                                </div>
+                                <MudTextField Value="@username" Label="Email Address" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="true" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <div class="form-group">
-                                    <label class="mud-input-label">Phone Number (Optional)</label>
-                                    <InputText @bind-Value="Input.PhoneNumber" class="form-control" />
+                                 <div class="mud-input-control mud-input-control-margin-dense mud-input-outlined-with-label mud-input-input-control">
+                                    <div class="mud-input-control-input-container">
+                                        <div class="mud-input mud-input-outlined mud-input-outlined-with-label mud-input-margin-dense mud-typography-subtitle1 mud-shrink">
+                                            <InputText @bind-Value="Input.PhoneNumber" class="mud-input-slot mud-input-root mud-input-root-outlined mud-input-root-margin-dense" style="padding: 18.5px 14px;" />
+                                            <div class="mud-input-slot mud-input-root mud-input-root-outlined mud-input-root-margin-dense" style="display:none" tabindex="-1"></div>
+                                            <fieldset class="mud-input-outlined-border">
+                                                <legend>Phone Number (Optional)</legend>
+                                            </fieldset>
+                                        </div>
+                                        <label class="mud-input-label mud-input-label-animated mud-input-label-outlined mud-input-label-margin-dense mud-input-label-inputcontrol">Phone Number (Optional)</label>
+                                    </div>
                                 </div>
+                                <ValidationMessage For="@(() => Input.PhoneNumber)" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <div class="form-group">
-                                    <label class="mud-input-label">Timezone</label>
-                                    <select class="form-control">
-                                        <option value="Eastern Time (US & Canada)">Eastern Time (US & Canada)</option>
-                                        <option value="Pacific Time (US & Canada)">Pacific Time (US & Canada)</option>
-                                        <option value="UTC">UTC</option>
-                                    </select>
-                                </div>
+                                <MudTextField Value="@("UTC")" Label="Timezone" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="true" HelperText="Timezone changes not yet available" />
                             </MudItem>
                         </MudGrid>
 
