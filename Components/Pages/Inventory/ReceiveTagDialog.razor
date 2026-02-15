@@ -1,0 +1,53 @@
+@using CMetalsFulfillment.Services
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_sku" Label="SKU" Required="true" />
+            <MudTextField @bind-Value="_tagNumber" Label="Tag Number" Required="true" />
+            <MudNumericField @bind-Value="_weightNet" Label="Net Weight" Required="true" />
+            <MudNumericField @bind-Value="_weightGross" Label="Gross Weight" Required="true" />
+            <MudTextField @bind-Value="_location" Label="Location" />
+            <MudTextField @bind-Value="_notes" Label="Notes" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="Save">Receive</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public string UserId { get; set; } = "";
+
+    private string _sku = "";
+    private string _tagNumber = "";
+    private decimal _weightNet;
+    private decimal _weightGross;
+    private string _location = "";
+    private string _notes = "";
+    private MudForm _form = default!;
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            await InventoryService.ReceiveTagAsync(BranchId, _sku, _tagNumber, _weightNet, _weightGross, _location, _notes, UserId);
+            Snackbar.Add("Tag received.", Severity.Success);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

@@ -31,7 +31,7 @@ builder.Services.AddAuthentication(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Register Factory (Singleton)
+// Register Factory (Singleton) - This is the ONLY place configuring SQLite options
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
@@ -68,6 +68,9 @@ builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IShippingConfigurationService, ShippingConfigurationService>();
 
+// Phase 3 Services
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+
 // Authorization
 builder.Services.AddScoped<IClaimsTransformation, BranchClaimsTransformation>();
 builder.Services.AddScoped<IAuthorizationHandler, BranchRoleHandler>();
@@ -87,12 +90,10 @@ var app = builder.Build();
 // Migrate Database & Seed
 using (var scope = app.Services.CreateScope())
 {
-    // Make sure to apply migrations first
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<ApplicationDbContext>();
     context.Database.Migrate();
 
-    // Seed Data
     await DbSeeder.SeedAsync(scope.ServiceProvider);
 }
 

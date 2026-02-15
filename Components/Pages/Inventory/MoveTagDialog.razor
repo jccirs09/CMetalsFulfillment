@@ -1,0 +1,46 @@
+@using CMetalsFulfillment.Data.Entities
+@using CMetalsFulfillment.Services
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Current Location: @Tag.Location</MudText>
+        <MudTextField @bind-Value="_newLocation" Label="New Location" Required="true" AutoFocus="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Move</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int BranchId { get; set; }
+    [Parameter] public string UserId { get; set; } = "";
+    [Parameter] public Tag Tag { get; set; } = default!;
+
+    private string _newLocation = "";
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_newLocation))
+        {
+            Snackbar.Add("Location required.", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            await InventoryService.MoveTagAsync(BranchId, Tag.TagNumber, _newLocation, UserId);
+            Snackbar.Add("Tag moved.", Severity.Success);
+            if (MudDialog != null) MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() { if (MudDialog != null) MudDialog.Cancel(); }
+}

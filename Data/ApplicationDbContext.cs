@@ -24,6 +24,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<NonWorkingDay> NonWorkingDays { get; set; }
     public DbSet<NonWorkingDayOverride> NonWorkingDayOverrides { get; set; }
 
+    // Phase 3 Entities
+    public DbSet<ItemMaster> ItemMasters { get; set; }
+    public DbSet<Tag> Tags { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -101,5 +105,41 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<NonWorkingDayOverride>()
             .HasIndex(n => new { n.BranchId, n.DateLocal, n.OverrideType })
             .IsUnique();
+
+        // Phase 3 Constraints
+
+        // ItemMaster
+        builder.Entity<ItemMaster>()
+            .HasIndex(i => new { i.BranchId, i.Sku })
+            .IsUnique();
+
+        // Tag
+        builder.Entity<Tag>()
+            .HasIndex(t => new { t.BranchId, t.TagNumber })
+            .IsUnique();
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries<IConcurrencyAware>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added);
+
+        foreach (var entry in entries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.Version = 1;
+            }
+            else
+            {
+                entry.Entity.Version++;
+                // Manually setting OriginalValue for Version ensures concurrency check works if not loaded tracked
+                // But for tracked entities, EF handles it. We just need to increment it.
+                // However, EF Core's ConcurrencyCheck attribute works by comparing the original value.
+                // We just need to ensure we increment it on save.
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
     }
 }
