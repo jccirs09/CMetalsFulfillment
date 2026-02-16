@@ -2,11 +2,13 @@
 @using CMetalsFulfillment.Services
 @using CMetalsFulfillment.Data
 @using MudBlazor
+@implements IDisposable
 
 @inject IBranchContext BranchContext
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@inject PersistentComponentState ApplicationState
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -15,6 +17,7 @@
 
 <MudLayout>
     <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudText Typo="Typo.h5" Class="ml-3">MetalFlow</MudText>
         <MudSpacer />
 
@@ -60,6 +63,10 @@
         </AuthorizeView>
     </MudAppBar>
 
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
             @Body
@@ -68,22 +75,50 @@
 </MudLayout>
 
 @code {
+    private bool _drawerOpen = true;
     private Branch? activeBranch;
+    private PersistingComponentStateSubscription _subscription;
 
     protected override async Task OnInitializedAsync()
     {
-        activeBranch = await BranchContext.GetBranchAsync();
+        _subscription = ApplicationState.RegisterOnPersisting(PersistBranchId);
+
+        if (ApplicationState.TryTakeFromJson<int>("activeBranchId", out var restoredBranchId))
+        {
+            // We are interactive/restored. Use the ID from prerender.
+            await BranchContext.SetBranchAsync(restoredBranchId);
+            activeBranch = await BranchContext.GetBranchAsync();
+        }
+        else
+        {
+            // We are prerendering or fresh load. Resolve normally (Context works here).
+            activeBranch = await BranchContext.GetBranchAsync();
+        }
     }
 
-    // Listen for location changes to re-evaluate branch if needed (though scoped service usually persists)
-    // However, if we change branch, we force reload so OnInitialized runs again.
+    private Task PersistBranchId()
+    {
+        if (activeBranch != null)
+        {
+            ApplicationState.PersistAsJson("activeBranchId", activeBranch.Id);
+        }
+        return Task.CompletedTask;
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
 
     private async Task OpenBranchPicker()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<BranchPickerDialog>("Select Branch", options);
         var result = await dialog.Result;
+    }
 
-        // The dialog itself handles the reload on success, so we don't need to do much here.
+    public void Dispose()
+    {
+        _subscription.Dispose();
     }
 }

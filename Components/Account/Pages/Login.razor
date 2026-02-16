@@ -72,14 +72,11 @@
     private string? ReturnUrl { get; set; }
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {
-        if (Input is null)
-        {
-            Input = new();
-        }
+        Input ??= new();
 
         if (HttpContext is not null && HttpMethods.IsGet(HttpContext.Request.Method))
         {
@@ -89,7 +86,7 @@
 
     public async Task LoginUser()
     {
-        var userName = Input.Email;
+        string? userName = Input.Email;
         if (IsValidEmail(Input.Email))
         {
             var user = await UserManager.FindByEmailAsync(Input.Email);
@@ -97,6 +94,12 @@
             {
                 userName = user.UserName;
             }
+        }
+
+        if (string.IsNullOrEmpty(userName))
+        {
+             errorMessage = "Error: Invalid login attempt.";
+             return;
         }
 
         var result = await SignInManager.PasswordSignInAsync(userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);

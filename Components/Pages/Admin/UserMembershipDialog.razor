@@ -147,7 +147,7 @@
         var dialog = await DialogService.ShowAsync<AddRoleDialog>("Add Role", parameters);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is string roleName)
+        if (result is not null && !result.Canceled && result.Data is string roleName)
         {
             await UserService.AddBranchRoleAsync(User.Id, branchId, roleName, currentUserId);
             await LoadMemberships();

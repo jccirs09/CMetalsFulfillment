@@ -78,7 +78,7 @@
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<UserCreateDialog>("Create User", options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is not null && !result.Canceled)
         {
             await LoadUsers();
         }
@@ -89,7 +89,7 @@
         var parameters = new DialogParameters<UserEditDialog> { { x => x.User, user } };
         var dialog = await DialogService.ShowAsync<UserEditDialog>("Edit User", parameters);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is not null && !result.Canceled)
         {
             await LoadUsers();
         }
