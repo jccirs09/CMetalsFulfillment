@@ -54,6 +54,7 @@ builder.Services.AddScoped<IRoleResolver, RoleResolver>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<UserAdminService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -94,5 +95,6 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+app.MapControllers();
 
 app.Run();

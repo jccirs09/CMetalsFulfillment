@@ -3,17 +3,11 @@
 @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Identity
 @using CMetalsFulfillment.Data
 @using Microsoft.AspNetCore.Components.Forms
 @using MudBlazor
 
-@inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
-@inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Log in</PageTitle>
 
@@ -26,33 +20,37 @@
                 </CardHeaderContent>
             </MudCardHeader>
             <MudCardContent>
-                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" data-enhance="false">
-                    <DataAnnotationsValidator />
+                @if (ErrorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">@ErrorMessage</MudAlert>
+                }
+
+                <form action="Account/Login?returnUrl=@ReturnUrl" method="post">
+                    <AntiforgeryToken />
+
                     <MudStack Spacing="2">
-                        <MudTextField @bind-Value="Input.Email"
-                                      For="@(() => Input.Email)"
-                                      UserAttributes="@(new Dictionary<string, object> { { "name", "Input.Email" } })"
-                                      Label="Email" Variant="Variant.Outlined" Required="true" InputType="InputType.Email" />
+                        <!-- Standard HTML Inputs for reliable Form POST -->
+                        <div class="form-group mb-3">
+                            <label class="mud-input-label">Email</label>
+                            <input type="email" name="Email" class="form-control mud-input-slot mud-input-root mud-input-root-outlined" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" required />
+                        </div>
 
-                        <MudTextField @bind-Value="Input.Password"
-                                      For="@(() => Input.Password)"
-                                      UserAttributes="@(new Dictionary<string, object> { { "name", "Input.Password" } })"
-                                      Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+                         <div class="form-group mb-3">
+                             <label class="mud-input-label">Password</label>
+                            <input type="password" name="Password" class="form-control mud-input-slot mud-input-root mud-input-root-outlined" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" required />
+                        </div>
 
-                        <MudCheckBox @bind-Value="Input.RememberMe"
-                                     UserAttributes="@(new Dictionary<string, object> { { "name", "Input.RememberMe" }, { "value", "true" } })"
-                                     Label="Remember me" Color="Color.Primary" />
+                        <div class="d-flex align-center mt-2">
+                             <input type="checkbox" name="RememberMe" value="true" id="rememberMe" />
+                             <label for="rememberMe" class="ml-2 mud-typography mud-typography-body1">Remember me</label>
+                        </div>
+                        <input type="hidden" name="RememberMe" value="false" />
 
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-4">
                             Log in
                         </MudButton>
                     </MudStack>
-
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <MudText Color="Color.Error" Class="mt-2">@errorMessage</MudText>
-                    }
-                </EditForm>
+                </form>
             </MudCardContent>
             <MudCardActions Class="d-flex justify-center flex-column pb-4">
                  <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot your password?</MudLink>
@@ -63,86 +61,9 @@
 </MudGrid>
 
 @code {
-    private string? errorMessage;
-
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
-
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = null!;
-
-    protected override async Task OnInitializedAsync()
-    {
-        Input ??= new();
-
-        if (HttpContext is not null && HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
-    }
-
-    public async Task LoginUser()
-    {
-        string? userName = Input.Email;
-        if (IsValidEmail(Input.Email))
-        {
-            var user = await UserManager.FindByEmailAsync(Input.Email);
-            if (user != null)
-            {
-                userName = user.UserName;
-            }
-        }
-
-        if (string.IsNullOrEmpty(userName))
-        {
-             errorMessage = "Error: Invalid login attempt.";
-             return;
-        }
-
-        var result = await SignInManager.PasswordSignInAsync(userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            errorMessage = "Error: Invalid login attempt.";
-        }
-    }
-
-    private bool IsValidEmail(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email)) return false;
-        try {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
-        }
-        catch {
-            return false;
-        }
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
-    }
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? ErrorMessage { get; set; }
 }
