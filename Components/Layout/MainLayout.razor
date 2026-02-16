@@ -1,9 +1,108 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-@Body
+<MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Class="ml-3">MetalFlow</MudText>
+
+        <MudDivider Vertical="true" FlexItem="true" DividerType="DividerType.Middle" Class="mx-4 my-3" />
+
+        <div class="d-flex align-center gap-4">
+             <div class="d-flex align-center rounded border px-2 py-1 gap-2" style="background-color: rgba(255,255,255,0.1);">
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mr-2">NY01</MudChip>
+                <div class="d-flex flex-column">
+                    <MudText Typo="Typo.caption" style="line-height: 1;">Active Branch</MudText>
+                    <MudText Typo="Typo.body2" style="font-weight: 600; line-height: 1;">New York Plant</MudText>
+                </div>
+            </div>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.SwapHoriz">Switch</MudButton>
+        </div>
+
+        <MudSpacer />
+
+        <div class="d-none d-md-flex align-center gap-2 px-3 py-1 rounded border mr-4" style="background-color: rgba(255,255,255,0.05);">
+            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Class="font-monospace">14:32:05 EST</MudText>
+        </div>
+
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" />
+
+        <MudDivider Vertical="true" FlexItem="true" DividerType="DividerType.Middle" Class="mx-4 my-3" />
+
+        <div class="d-flex align-center gap-3">
+             <div class="d-none d-sm-block text-right">
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">Alex Chen</MudText>
+                <MudText Typo="Typo.caption">Plant Manager</MudText>
+            </div>
+            <MudAvatar Color="Color.Primary">AC</MudAvatar>
+        </div>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="px-4 mt-4 mb-2">SETUP</MudText>
+            <MudNavLink Href="/setup" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Checklist</MudNavLink>
+            <MudNavLink Href="#" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Domain">Company Info</MudNavLink>
+            <MudNavLink Href="#" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Warehouse">Locations</MudNavLink>
+
+            <MudText Typo="Typo.subtitle2" Class="px-4 mt-4 mb-2 text-muted">ADMIN</MudText>
+            <MudNavLink Href="/admin/users" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">Users & Roles</MudNavLink>
+            <MudNavLink Href="#" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink>
+
+            <MudText Typo="Typo.subtitle2" Class="px-4 mt-4 mb-2 text-muted">OPERATIONS</MudText>
+            <MudNavLink Href="#" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Inventory2" Disabled="true">Inventory</MudNavLink>
+            <MudNavLink Href="#" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.LocalShipping" Disabled="true">Logistics</MudNavLink>
+        </MudNavMenu>
+
+        <div class="mt-auto p-4 border-t">
+            <div class="d-flex align-center gap-2">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #4caf50;"></div>
+                <MudText Typo="Typo.caption">System Online v1.0.4</MudText>
+            </div>
+        </div>
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+    bool _isDarkMode = true; // Defaulting to Dark Mode as per design
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    MudTheme _theme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#135bec",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#424242",
+            Background = "#f6f6f8",
+            DrawerBackground = "#ffffff",
+            DrawerText = "#424242",
+            Surface = "#ffffff",
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#135bec",
+            AppbarBackground = "#1a2234",
+            Background = "#101622",
+            Surface = "#1a2234",
+            DrawerBackground = "#1a2234",
+            DrawerText = "#ffffff",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#94a3b8"
+        },
+    };
+}

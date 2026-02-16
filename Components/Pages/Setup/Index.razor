@@ -1,0 +1,155 @@
+@page "/setup"
+@using MudBlazor
+
+<PageTitle>Setup Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-center justify-space-between mb-8">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;" Class="mb-2">Setup Checklist</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Complete the following steps to activate full operations for <span class="mud-text-primary" style="font-weight: 600;">New York Plant (NY01)</span>.
+            </MudText>
+        </div>
+        <div class="d-flex align-center gap-4 mt-4 mt-md-0">
+            <div class="text-right">
+                <MudText Typo="Typo.caption" Class="text-uppercase" Color="Color.Secondary" Style="font-weight: 600; letter-spacing: 0.5px;">Overall Progress</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">65%</MudText>
+            </div>
+            <MudProgressCircular Value="65" Color="Color.Primary" Size="Size.Large" StrokeWidth="5" />
+        </div>
+    </div>
+
+    <!-- Checklist Cards -->
+    <MudGrid Class="mb-8">
+        <!-- Card 1: Completed -->
+        <MudItem xs="12" md="6" xl="4">
+            <MudCard Class="rounded-xl relative overflow-hidden" Elevation="2">
+                <div class="absolute top-0 right-0 pa-4">
+                    <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">Complete</MudChip>
+                </div>
+                <MudCardContent Class="pa-6">
+                    <div class="d-flex justify-center align-center rounded-lg mb-4" style="width: 48px; height: 48px; background-color: var(--mud-palette-background-grey);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Large" Color="Color.Secondary" />
+                    </div>
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;" Class="mb-2">Branch Information</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Address, contact details, and operating hours have been verified.</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true">Review Details</MudButton>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Card 2: In Progress -->
+        <MudItem xs="12" md="6" xl="4">
+            <MudCard Class="rounded-xl relative overflow-hidden" Elevation="4" Style="border: 2px solid var(--mud-palette-primary);">
+                <div class="absolute top-0 right-0 pa-4">
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Circle" Class="mud-chip-animation">In Progress</MudChip>
+                </div>
+                <MudCardContent Class="pa-6">
+                    <div class="d-flex justify-center align-center rounded-lg mb-4" style="width: 48px; height: 48px; background-color: rgba(19, 91, 236, 0.1);">
+                        <MudIcon Icon="@Icons.Material.Outlined.ManageAccounts" Size="Size.Large" Color="Color.Primary" />
+                    </div>
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;" Class="mb-2">User Roles & Permissions</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Define access levels for shift supervisors and machine operators.</MudText>
+
+                    <div class="mb-6">
+                        <div class="d-flex justify-space-between mb-1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">2 of 5 Roles Defined</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Primary" Style="font-weight: 600;">40%</MudText>
+                        </div>
+                        <MudProgressLinear Value="40" Color="Color.Primary" Class="rounded-xl" Size="Size.Small" />
+                    </div>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" EndIcon="@Icons.Material.Filled.ArrowForward">Continue Setup</MudButton>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Card 3: Pending -->
+        <MudItem xs="12" md="6" xl="4">
+            <MudCard Class="rounded-xl relative overflow-hidden opacity-90 hover:opacity-100 transition-opacity" Elevation="2">
+                <div class="absolute top-0 right-0 pa-4">
+                    <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Circle">Pending</MudChip>
+                </div>
+                <MudCardContent Class="pa-6">
+                    <div class="d-flex justify-center align-center rounded-lg mb-4" style="width: 48px; height: 48px; background-color: var(--mud-palette-background-grey);">
+                        <MudIcon Icon="@Icons.Material.Outlined.GridView" Size="Size.Large" Color="Color.Default" />
+                    </div>
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;" Class="mb-2">Inventory Zones</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Map physical warehouse locations to digital inventory zones.</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Disabled="true" StartIcon="@Icons.Material.Filled.Lock">Locked</MudButton>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Activity Log -->
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">Recent Configuration Log</MudText>
+        <MudLink Href="#" Color="Color.Primary" Underline="Underline.Hover">View All Logs</MudLink>
+    </div>
+
+    <MudTable Items="@_logs" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Class="rounded-xl mb-8">
+        <HeaderContent>
+            <MudTh>Event ID</MudTh>
+            <MudTh>Action</MudTh>
+            <MudTh>User</MudTh>
+            <MudTh>Timestamp</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Event ID"><MudText Typo="Typo.body2" Class="font-monospace" Color="Color.Secondary">@context.EventId</MudText></MudTd>
+            <MudTd DataLabel="Action"><MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Action</MudText></MudTd>
+            <MudTd DataLabel="User">@context.User</MudTd>
+            <MudTd DataLabel="Timestamp"><MudText Typo="Typo.caption" Class="font-monospace">@context.Timestamp</MudText></MudTd>
+            <MudTd DataLabel="Status">
+                @if(context.Status == "Success")
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="rounded">Success</MudChip>
+                }
+                else if (context.Status == "Warning")
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="rounded">Warning</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <!-- Support Section -->
+    <MudPaper Class="rounded-xl pa-8 d-flex flex-column flex-md-row align-center gap-8" Elevation="0" Style="background: linear-gradient(90deg, rgba(19, 91, 236, 0.05) 0%, transparent 100%); border: 1px dashed var(--mud-palette-primary-lighten);">
+        <div class="flex-1">
+            <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">Need Support?</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width: 500px;">
+                The MetalFlow onboarding team is available to assist with complex warehouse mappings and ERP integrations. Access the documentation or contact support.
+            </MudText>
+            <div class="d-flex gap-3">
+                <MudLink Href="#" Color="Color.Primary" Underline="Underline.Hover" Style="font-weight: 500;">Read Documentation</MudLink>
+                <MudText Color="Color.Secondary">|</MudText>
+                <MudLink Href="#" Color="Color.Primary" Underline="Underline.Hover" Style="font-weight: 500;">Contact Support</MudLink>
+            </div>
+        </div>
+        <div class="d-none d-md-flex justify-center align-center rounded-lg relative overflow-hidden" style="width: 192px; height: 128px; background-color: var(--mud-palette-background-grey);">
+             <MudIcon Icon="@Icons.Material.Outlined.SupportAgent" Size="Size.Large" Color="Color.Secondary" Style="font-size: 3rem;" />
+        </div>
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private List<LogEntry> _logs = new List<LogEntry>
+    {
+        new LogEntry { EventId = "LOG-8921", Action = "Updated Shift Schedule", User = "Alex Chen", Timestamp = "2023-10-24 14:15:22", Status = "Success" },
+        new LogEntry { EventId = "LOG-8920", Action = "Added User: M. Kowalski", User = "System Admin", Timestamp = "2023-10-24 13:45:01", Status = "Success" },
+        new LogEntry { EventId = "LOG-8919", Action = "Zone Mapping Validation", User = "System Bot", Timestamp = "2023-10-24 11:10:55", Status = "Warning" },
+    };
+
+    public class LogEntry
+    {
+        public string EventId { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string User { get; set; } = "";
+        public string Timestamp { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+}

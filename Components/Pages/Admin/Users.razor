@@ -1,0 +1,208 @@
+@page "/admin/users"
+@using MudBlazor
+
+<PageTitle>User & Branch Role Administration</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0" Style="height: calc(100vh - 64px); display: flex;">
+
+    <!-- Left Panel: User List -->
+    <div class="d-flex flex-column flex-grow-1 border-r mud-border-lines-default" style="min-width: 0; background-color: var(--mud-palette-surface);">
+        <!-- Toolbar -->
+        <div class="pa-6 border-b mud-border-lines-default d-flex flex-column flex-sm-row align-center justify-space-between gap-4">
+            <div>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">Users</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Manage system access and branch assignments.</MudText>
+            </div>
+            <div class="d-flex align-center gap-3">
+                <MudTextField @bind-Value="_searchString" Placeholder="Search users..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Class="rounded-lg" Style="background-color: var(--mud-palette-background);" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="rounded-lg shadow-md">Create User</MudButton>
+            </div>
+        </div>
+
+        <!-- User Table -->
+        <div class="flex-grow-1 overflow-auto pa-6 bg-gray-50 dark:bg-dark">
+             <MudTable Items="@_users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1" Class="rounded-xl" OnRowClick="RowClickEvent" T="UserViewModel">
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>System Role</MudTh>
+                    <MudTh>Branch Access</MudTh>
+                    <MudTh Class="text-right">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="User">
+                        <div class="d-flex align-center gap-3">
+                            <MudAvatar Color="@context.AvatarColor" Size="Size.Medium" Class="shadow-sm">@context.Initials</MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Email</MudText>
+                            </div>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Status">
+                        @if (context.IsActive)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Circle" Class="mud-chip-animation">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Circle">Inactive</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="System Role">
+                        @if (context.IsSystemAdmin)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Shield" Class="border-primary">SYSTEM_ADMIN</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text" Class="border-default">USER</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Branch Access">
+                        <MudAvatarGroup Max="3" Spacing="2" MaxColor="Color.Default">
+                            @foreach (var branch in context.Branches)
+                            {
+                                <MudAvatar Size="Size.Small" Color="Color.Default" Class="border-2 border-surface">@branch</MudAvatar>
+                            }
+                        </MudAvatarGroup>
+                        @if(context.Branches.Count == 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="font-italic text-muted">No branch access</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Actions" Class="text-right">
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        </div>
+    </div>
+
+    <!-- Right Drawer: User Details -->
+    <MudDrawer @bind-Open="@_drawerOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Never" Elevation="4" Variant="DrawerVariant.Temporary" Width="400px">
+        @if (_selectedUser != null)
+        {
+            <MudDrawerHeader Class="border-b pa-6 d-flex justify-space-between align-start">
+                <div class="d-flex align-center gap-4">
+                    <MudAvatar Color="@_selectedUser.AvatarColor" Size="Size.Large" Class="shadow-inner" Style="width: 64px; height: 64px; font-size: 1.5rem;">@_selectedUser.Initials</MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h6" Style="font-weight: 700; line-height: 1.2;">@_selectedUser.Name</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@_selectedUser.Email</MudText>
+                        @if (_selectedUser.IsSystemAdmin)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text" Class="text-uppercase font-weight-bold border-primary">System Admin</MudChip>
+                        }
+                        <MudLink Href="#" Typo="Typo.caption" Color="Color.Primary" Class="ml-2">Edit Profile</MudLink>
+                    </div>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _drawerOpen = false)" Color="Color.Secondary" />
+            </MudDrawerHeader>
+
+            <div class="pa-6 overflow-auto flex-grow-1" style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <MudText Typo="Typo.subtitle2" Class="text-uppercase" Color="Color.Secondary" Style="font-weight: 600;">Branch Memberships</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small">Assign Branch</MudButton>
+                </div>
+
+                <div class="d-flex flex-column gap-4">
+                    <!-- Branch Membership Cards -->
+                    @foreach (var membership in _selectedUser.BranchMemberships)
+                    {
+                        <MudPaper Class="pa-4 rounded-lg border hover-border-primary transition-all" Elevation="0">
+                            <div class="d-flex justify-space-between align-start mb-3">
+                                <div class="d-flex align-center gap-3">
+                                    <MudAvatar Rounded="true" Color="Color.Default" Size="Size.Medium" Class="bg-gray-100 dark:bg-dark-light text-muted">
+                                        <MudIcon Icon="@membership.Icon" />
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@membership.BranchName</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@membership.BranchId • @membership.Location</MudText>
+                                    </div>
+                                </div>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Secondary" Class="hover-text-error" />
+                            </div>
+                            <div>
+                                <MudText Typo="Typo.caption" Style="font-weight: 700;" Class="text-uppercase text-muted mb-1 d-block">Role Assignment</MudText>
+                                <MudSelect T="string" @bind-Value="membership.Role" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="bg-surface">
+                                    <MudSelectItem Value="@("Branch Admin")" />
+                                    <MudSelectItem Value="@("Supervisor")" />
+                                    <MudSelectItem Value="@("Planner")" />
+                                    <MudSelectItem Value="@("Machine Operator")" />
+                                    <MudSelectItem Value="@("Viewer")" />
+                                </MudSelect>
+                            </div>
+                        </MudPaper>
+                    }
+                </div>
+
+                @if (_selectedUser.IsSystemAdmin)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-8 rounded-lg bg-yellow-50 dark:bg-yellow-900 border-yellow-200 text-yellow-800">
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">System Admin Privilege</MudText>
+                        <MudText Typo="Typo.caption">As a System Admin, @_selectedUser.Name has implicit read-access to all branches, but specific roles above define operational capabilities.</MudText>
+                    </MudAlert>
+                }
+            </div>
+
+            <div class="pa-6 border-t d-flex gap-3 bg-surface">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="shadow-md">Save Changes</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => _drawerOpen = false)">Cancel</MudButton>
+            </div>
+        }
+    </MudDrawer>
+</MudContainer>
+
+@code {
+    private string _searchString = "";
+    private bool _drawerOpen = false;
+    private UserViewModel? _selectedUser;
+
+    private List<UserViewModel> _users = new()
+    {
+        new UserViewModel { Name = "Alice Sterling", Email = "alice.s@metalflow.com", Initials = "AS", AvatarColor = Color.Default, IsActive = true, IsSystemAdmin = true, Branches = new List<string> { "MP", "LH", "+1" },
+            BranchMemberships = new List<BranchMembership> {
+                new BranchMembership { BranchName = "North America Plant", BranchId = "ID: B-001", Location = "Detroit, MI", Role = "Supervisor", Icon = Icons.Material.Filled.Factory },
+                new BranchMembership { BranchName = "Logistics Hub", BranchId = "ID: B-045", Location = "Hamburg, DE", Role = "Planner", Icon = Icons.Material.Filled.LocalShipping },
+                new BranchMembership { BranchName = "R&D Facility", BranchId = "ID: B-102", Location = "Austin, TX", Role = "Viewer", Icon = Icons.Material.Filled.Science }
+            }
+        },
+        new UserViewModel { Name = "Marcus Kane", Email = "m.kane@metalflow.com", Initials = "MK", AvatarColor = Color.Info, IsActive = true, IsSystemAdmin = false, Branches = new List<string>(), BranchMemberships = new List<BranchMembership>() },
+        new UserViewModel { Name = "Jessica Lee", Email = "jess.lee@metalflow.com", Initials = "JL", AvatarColor = Color.Warning, IsActive = false, IsSystemAdmin = false, Branches = new List<string> { "MP" }, BranchMemberships = new List<BranchMembership> {
+             new BranchMembership { BranchName = "North America Plant", BranchId = "ID: B-001", Location = "Detroit, MI", Role = "Operator", Icon = Icons.Material.Filled.Factory }
+        }},
+        new UserViewModel { Name = "David Rossi", Email = "d.rossi@metalflow.com", Initials = "DR", AvatarColor = Color.Secondary, IsActive = true, IsSystemAdmin = false, Branches = new List<string> { "LH" }, BranchMemberships = new List<BranchMembership> {
+             new BranchMembership { BranchName = "Logistics Hub", BranchId = "ID: B-045", Location = "Hamburg, DE", Role = "Viewer", Icon = Icons.Material.Filled.LocalShipping }
+        }}
+    };
+
+    private void RowClickEvent(TableRowClickEventArgs<UserViewModel> tableRowClickEventArgs)
+    {
+        _selectedUser = tableRowClickEventArgs.Item;
+        _drawerOpen = true;
+    }
+
+    public class UserViewModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Initials { get; set; } = "";
+        public Color AvatarColor { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsSystemAdmin { get; set; }
+        public List<string> Branches { get; set; } = new();
+        public List<BranchMembership> BranchMemberships { get; set; } = new();
+    }
+
+    public class BranchMembership
+    {
+        public string BranchName { get; set; } = "";
+        public string BranchId { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+}
