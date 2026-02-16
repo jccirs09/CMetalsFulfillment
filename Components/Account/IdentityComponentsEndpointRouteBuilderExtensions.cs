@@ -41,14 +41,6 @@ namespace Microsoft.AspNetCore.Routing
                 return TypedResults.Challenge(properties, [provider]);
             });
 
-            accountGroup.MapPost("/Logout", async (
-                ClaimsPrincipal user,
-                [FromServices] SignInManager<ApplicationUser> signInManager,
-                [FromForm] string returnUrl) =>
-            {
-                await signInManager.SignOutAsync();
-                return TypedResults.LocalRedirect($"~/{returnUrl}");
-            });
 
             accountGroup.MapPost("/PasskeyCreationOptions", async (
                 HttpContext context,
