@@ -1,0 +1,1 @@
+Fixed invalid logout redirection by avoiding LocalRedirect and validating URLs safely.

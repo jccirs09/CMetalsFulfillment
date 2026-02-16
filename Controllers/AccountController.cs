@@ -18,7 +18,7 @@ namespace CMetalsFulfillment.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromForm] LoginInputModel input, [FromQuery] string? returnUrl = null)
+        public async Task<IActionResult> Login([FromForm] LoginInputModel input, string? returnUrl = null)
         {
             returnUrl ??= "/";
 
@@ -39,7 +39,7 @@ namespace CMetalsFulfillment.Controllers
                     var result = await _signInManager.PasswordSignInAsync(userName, input.Password, input.RememberMe, lockoutOnFailure: false);
                     if (result.Succeeded)
                     {
-                        return LocalRedirect(returnUrl);
+                        if (string.IsNullOrEmpty(returnUrl) || !Url.IsLocalUrl(returnUrl)) { returnUrl = "/"; } return Redirect(returnUrl);
                     }
                     if (result.IsLockedOut)
                     {
@@ -52,11 +52,11 @@ namespace CMetalsFulfillment.Controllers
         }
 
         [HttpPost("Logout")]
-        public async Task<IActionResult> Logout([FromQuery] string? returnUrl = null)
+        public async Task<IActionResult> Logout(string? returnUrl = null)
         {
             await _signInManager.SignOutAsync();
             returnUrl ??= "/";
-            return LocalRedirect(returnUrl);
+            if (string.IsNullOrEmpty(returnUrl) || !Url.IsLocalUrl(returnUrl)) { returnUrl = "/"; } return Redirect(returnUrl);
         }
 
         private bool IsValidEmail(string email)
