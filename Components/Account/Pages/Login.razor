@@ -28,22 +28,24 @@
                 <form action="Account/Login?returnUrl=@ReturnUrl" method="post">
                     <AntiforgeryToken />
 
-                    <MudStack Spacing="2">
-                        <!-- Standard HTML Inputs for reliable Form POST -->
-                        <div class="form-group mb-3">
-                            <label class="mud-input-label">Email</label>
-                            <input type="email" name="Email" class="form-control mud-input-slot mud-input-root mud-input-root-outlined" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" required />
-                        </div>
+                    <MudStack Spacing="3">
+                        <!-- Email Field -->
+                        <MudTextField @bind-Value="email" Label="Email" InputType="InputType.Email" Variant="Variant.Outlined" FullWidth="true" Required="true" />
+                        <input type="hidden" name="Email" value="@email" />
 
-                         <div class="form-group mb-3">
-                             <label class="mud-input-label">Password</label>
-                            <input type="password" name="Password" class="form-control mud-input-slot mud-input-root mud-input-root-outlined" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" required />
-                        </div>
+                        <!-- Password Field -->
+                        <MudTextField @bind-Value="password" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" FullWidth="true" Required="true" />
+                        <input type="hidden" name="Password" value="@password" />
 
-                        <div class="d-flex align-center mt-2">
-                             <input type="checkbox" name="RememberMe" value="true" id="rememberMe" />
-                             <label for="rememberMe" class="ml-2 mud-typography mud-typography-body1">Remember me</label>
+                        <!-- Remember Me -->
+                        <div class="d-flex align-center">
+                            <MudCheckBox @bind-Value="rememberMe" Label="Remember me" Color="Color.Primary" />
                         </div>
+                        <!-- Hidden inputs for RememberMe checkbox logic -->
+                        @if (rememberMe)
+                        {
+                            <input type="hidden" name="RememberMe" value="true" />
+                        }
                         <input type="hidden" name="RememberMe" value="false" />
 
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Class="mt-4">
@@ -54,7 +56,6 @@
             </MudCardContent>
             <MudCardActions Class="d-flex justify-center flex-column pb-4">
                  <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot your password?</MudLink>
-                 <MudLink Href="Account/Register" Typo="Typo.body2" Class="mt-2">Register as a new user</MudLink>
             </MudCardActions>
         </MudCard>
     </MudItem>
@@ -66,4 +67,8 @@
 
     [SupplyParameterFromQuery(Name = "error")]
     private string? ErrorMessage { get; set; }
+
+    private string email = "";
+    private string password = "";
+    private bool rememberMe = false;
 }
