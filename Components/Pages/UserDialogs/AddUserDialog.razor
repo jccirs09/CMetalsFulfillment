@@ -1,0 +1,115 @@
+@using Microsoft.AspNetCore.Identity
+@using CMetalsFulfillment.Data
+@using CMetalsFulfillment.Services
+@using MudBlazor
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserBranchService UserBranchService
+@inject IBranchContext BranchContext
+@inject IBranchService BranchService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField Label="Email" @bind-Value="email" Required="true" InputType="InputType.Email" />
+        <MudTextField Label="Full Name" @bind-Value="fullName" Required="true" />
+        <MudTextField Label="Password" @bind-Value="password" Required="true" InputType="InputType.Password" />
+
+        <MudSelect T="int" Label="Branch" @bind-Value="branchId" Disabled="@(!IsSystemAdmin)">
+            @foreach (var branch in _branches)
+            {
+                <MudSelectItem Value="@branch.Id">@branch.Code - @branch.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSwitch Label="Add as Default Branch" @bind-Value="isDefault" Color="Color.Primary" />
+
+        @if (IsSystemAdmin)
+        {
+            <MudSwitch Label="Grant System Admin" @bind-Value="isSysAdmin" Color="Color.Error" />
+        }
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Create User</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public bool IsSystemAdmin { get; set; }
+
+    private string email = "";
+    private string fullName = "";
+    private string password = "";
+    private int branchId;
+    private bool isDefault = true;
+    private bool isSysAdmin = false;
+
+    private List<Branch> _branches = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsSystemAdmin)
+        {
+            _branches = await BranchService.GetAllActiveBranchesAsync();
+            if (_branches.Any()) branchId = _branches.First().Id;
+        }
+        else
+        {
+            if (BranchContext.ActiveBranchId.HasValue)
+            {
+                var branch = await BranchService.GetBranchByIdAsync(BranchContext.ActiveBranchId.Value);
+                if (branch != null)
+                {
+                    _branches.Add(branch);
+                    branchId = branch.Id;
+                }
+            }
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(fullName))
+        {
+            Snackbar.Add("Please fill all required fields.", Severity.Error);
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            CreatedAtUtc = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true // Auto-confirm for dev/admin created users
+        };
+
+        var result = await UserManager.CreateAsync(user, password);
+        if (result.Succeeded)
+        {
+            if (isSysAdmin)
+            {
+                await UserManager.AddToRoleAsync(user, "SystemAdmin");
+            }
+
+            // Add membership
+            await UserBranchService.AddMembershipAsync(user.Id, branchId, isDefault);
+
+            MudDialog.Close(DialogResult.Ok(user.Id));
+            Snackbar.Add("User created successfully.", Severity.Success);
+        }
+        else
+        {
+            foreach (var error in result.Errors)
+            {
+                Snackbar.Add(error.Description, Severity.Error);
+            }
+        }
+    }
+}
