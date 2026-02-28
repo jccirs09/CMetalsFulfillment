@@ -1,0 +1,27 @@
+@using MudBlazor
+
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+
+    <MudNavGroup Title="Setup & Admin" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
+        <AuthorizeView Roles="SystemAdmin">
+             <MudNavLink Href="setup" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Checklist">Setup Gates</MudNavLink>
+        </AuthorizeView>
+        <MudNavLink Href="Admin/Users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">Users</MudNavLink>
+        <MudNavLink Href="Admin/Branch" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Domain">Branch Config</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Master Data" Icon="@Icons.Material.Filled.Storage">
+        <MudNavLink Href="Inventory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory">Inventory</MudNavLink>
+        <MudNavLink Href="Config" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.SettingsInputComponent">Configuration</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Operations" Icon="@Icons.Material.Filled.PrecisionManufacturing">
+        <MudNavLink Href="Operations/Picking" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.FormatListBulleted">Picking Lists</MudNavLink>
+        <MudNavLink Href="Operations/Pack" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MoveToInbox">Pick & Pack</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Logistics" Icon="@Icons.Material.Filled.LocalShipping">
+        <MudNavLink Href="Logistics/Shipments" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocalShipping">Shipments</MudNavLink>
+    </MudNavGroup>
+</MudNavMenu>

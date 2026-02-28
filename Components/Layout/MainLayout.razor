@@ -1,9 +1,124 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using CMetalsFulfillment.Services
+@using CMetalsFulfillment.Data
+@using MudBlazor
+@implements IDisposable
 
-@Body
+@inject IBranchContext BranchContext
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject PersistentComponentState ApplicationState
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">MetalFlow</MudText>
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                @if (activeBranch != null)
+                {
+                    <MudChip T="string" Color="Color.Primary" Class="mr-4" OnClick="OpenBranchPicker">
+                        <MudIcon Icon="@Icons.Material.Filled.Domain" Class="mr-1"/>
+                        @activeBranch.Code - @activeBranch.Name
+                    </MudChip>
+
+                     <MudText Typo="Typo.body2" Class="mr-4">
+                        @DateTime.UtcNow.ToString("HH:mm") UTC
+                    </MudText>
+                }
+                else
+                {
+                     <MudChip T="string" Color="Color.Error" Class="mr-4" OnClick="OpenBranchPicker">
+                        Select Branch
+                    </MudChip>
+                }
+
+                <MudText Typo="Typo.body1" Class="mr-4">
+                    @context.User.Identity?.Name
+                </MudText>
+
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick="OpenBranchPicker">
+                    Switch Branch
+                </MudButton>
+
+                <form action="/Account/Logout" method="post" class="d-inline ml-2">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="/" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Secondary">
+                        Logout
+                    </MudButton>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="Account/Login" Variant="Variant.Filled" Color="Color.Primary">Login</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private Branch? activeBranch;
+    private PersistingComponentStateSubscription _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = ApplicationState.RegisterOnPersisting(PersistBranchId);
+
+        if (ApplicationState.TryTakeFromJson<int>("activeBranchId", out var restoredBranchId))
+        {
+            // We are interactive/restored. Use the ID from prerender.
+            await BranchContext.SetBranchAsync(restoredBranchId);
+            activeBranch = await BranchContext.GetBranchAsync();
+        }
+        else
+        {
+            // We are prerendering or fresh load. Resolve normally (Context works here).
+            activeBranch = await BranchContext.GetBranchAsync();
+        }
+    }
+
+    private Task PersistBranchId()
+    {
+        if (activeBranch != null)
+        {
+            ApplicationState.PersistAsJson("activeBranchId", activeBranch.Id);
+        }
+        return Task.CompletedTask;
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task OpenBranchPicker()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<BranchPickerDialog>("Select Branch", options);
+        var result = await dialog.Result;
+    }
+
+    public void Dispose()
+    {
+        _subscription.Dispose();
+    }
+}
