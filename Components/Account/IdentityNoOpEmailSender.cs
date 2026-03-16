@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace CMetalsFulfillment.Components.Account
 {
-    // Remove the "else if (EmailSender is IdentityNoOpEmailSender)" block from RegisterConfirmation.razor after updating with a real implementation.
     internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
     {
         private readonly IEmailSender emailSender = new NoOpEmailSender();
@@ -17,5 +16,10 @@ namespace CMetalsFulfillment.Components.Account
 
         public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode) =>
             emailSender.SendEmailAsync(email, "Reset your password", $"Please reset your password using the following code: {resetCode}");
+    }
+
+    internal sealed class NoOpEmailSender : IEmailSender
+    {
+        public Task SendEmailAsync(string email, string subject, string htmlMessage) => Task.CompletedTask;
     }
 }
