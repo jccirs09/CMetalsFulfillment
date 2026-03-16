@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 using CMetalsFulfillment.Components.Account.Pages;
@@ -15,6 +17,11 @@ namespace Microsoft.AspNetCore.Routing
 {
     internal static class IdentityComponentsEndpointRouteBuilderExtensions
     {
+        private static readonly ConcurrentDictionary<string, string> _loginProviderKeyNames = new();
+
+        private static readonly PropertyInfo[] _personalDataProps = typeof(ApplicationUser).GetProperties().Where(
+            prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute))).ToArray();
+
         // These endpoints are required by the Identity Razor components defined in the /Components/Account/Pages directory of this project.
         public static IEndpointConventionBuilder MapAdditionalIdentityEndpoints(this IEndpointRouteBuilder endpoints)
         {
@@ -127,9 +134,7 @@ namespace Microsoft.AspNetCore.Routing
 
                 // Only include personal data for download
                 var personalData = new Dictionary<string, string>();
-                var personalDataProps = typeof(ApplicationUser).GetProperties().Where(
-                    prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
-                foreach (var p in personalDataProps)
+                foreach (var p in _personalDataProps)
                 {
                     personalData.Add(p.Name, p.GetValue(user)?.ToString() ?? "null");
                 }
@@ -137,7 +142,8 @@ namespace Microsoft.AspNetCore.Routing
                 var logins = await userManager.GetLoginsAsync(user);
                 foreach (var l in logins)
                 {
-                    personalData.Add($"{l.LoginProvider} external login provider key", l.ProviderKey);
+                    var keyName = _loginProviderKeyNames.GetOrAdd(l.LoginProvider, provider => $"{provider} external login provider key");
+                    personalData.Add(keyName, l.ProviderKey);
                 }
 
                 personalData.Add("Authenticator Key", (await userManager.GetAuthenticatorKeyAsync(user))!);
